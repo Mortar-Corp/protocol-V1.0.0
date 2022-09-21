@@ -14,13 +14,3 @@ describe("Tokens", function() {
     });
   });
 
-// before("get factories", async function () {
-//     this.VCTokens = await hre.ethers.getContractFactory("VCTokens");
-// });
-
-// it('works', async function ()  {
-   
-//     const instance = await hre.upgrades.deployProxy(this.VCTokens, {kind: "uups"});
-    
-//     assert(await instance.name() === "VCToken");
-//   });

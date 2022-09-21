@@ -95,7 +95,6 @@ contract VCTokens is
 
     function mint(address account, uint256 id) public onlyRole(MINTER_ROLE) {
 
-
         _mint(account, id, 1, "");
     }
 
