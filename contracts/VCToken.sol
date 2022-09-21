@@ -9,8 +9,6 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "./IERC1155Modified.sol";
 import "./IERC1155ReceiverUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
@@ -33,7 +31,7 @@ contract VCToken is
     string private constant _name = "VCToken";
     string private constant _symbol = "VCT";
 
-    uint256 private nonce;
+
     uint256 private start;
     uint256 private constant EXPIRY = 7 days;
     mapping(address => CountersUpgradeable.Counter) private nonces;
@@ -53,9 +51,11 @@ contract VCToken is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    bytes32 private constant MINT_TYPEHASH = keccak256("Mint(address to,uint256 id,uint256 nonce)");
+    //keccak256("Mint(address safeAddr,uint256 id,uint256 nonce)");
+    bytes32 private constant MINT_TYPEHASH = 0x279388c14884869d3e0da2f2cfb5b39b078ff26698c43946808e11962eb61cad;
 
-
+    //keccak256("Burn(address from,uint256 id,uint256 nonce)")
+    bytes32 private constant BURN_TYPEHASH = 0x65ec0a3d9b23902e2fe999689a69e8e5ad5bcaab57b8635aec70eaae30d3d87f;
 
     
 
@@ -109,52 +109,48 @@ contract VCToken is
         return clientId;
     }
 
-    function getNonce(address owner) public view returns(uint256) {
-        return nonces[owner].current();
+    function getNonce(address account) public view returns(uint256) {
+        return nonces[account].current();
     }
 
-    function mint(address to, uint256 id, bytes calldata signature) public {
+    function mint(address safeAddr, uint256 id, bytes calldata signature) public {
         uint256 end = start + EXPIRY;
         require(block.timestamp < end, "expired deadline");
-        //require(balanceOf(_msgSender(), id) == 0, "one token per address");
-        require(to != address(0), "non zero address only");
-        require(hasRole(MINTER_ROLE, to), "missing authorization");
+        require(AddressUpgradeable.isContract(safeAddr), "mint is safe only");
+        address signer = msg.sender;
+      
+        bytes32 txHash = getMintHash(safeAddr, id, _incrementNonce(signer));
+        require(verifySignature(signer, txHash, signature), "invalid signature");
 
-        // bytes32 structHash = keccak256(abi.encodePacked(MINT_TYPEHASH, to, id, nonce));
-        // bytes32 TxHash = _hashTypedDataV4(structHash);
-        bytes32 txHash = getMintHash(to, id, nonce);
-        if(id != 1){
-            address signer = ECDSA.recover(txHash, signature);
-            require(signer == to, "invalid signature");
-        } else {
-            bytes4 magicValue = IERC1271(to).isValidSignature(txHash, signature);
-            require(magicValue == 0x1626ba7e, "business token should be minted to wallet address");
-        }
-        //nonce++;
-
-        _mint(to, id, 1, "");
+        _mint(safeAddr, id, 1, "");
     }
 
-    function getMintHash(address to, uint256 id, uint256 _nonce) public view returns(bytes32) {
-        //nonce = nonces[to];
-        bytes32 structHash = keccak256(abi.encode(MINT_TYPEHASH, to, id, _nonce));
-        return _hashTypedDataV4(structHash);
-    }
+    function burn(address from, uint256 id, bytes calldata signature) public  {
+        address signer = msg.sender;
+        bytes32 txHash = getBurnHash(from, id, _incrementNonce(signer));
+        require(verifySignature(signer, txHash, signature));
 
-    function verifySiganture(address signer, bytes32 txHash, bytes memory signature) public view returns(bool) {
-        return SignatureChecker.isValidSignatureNow(signer, txHash, signature);
-    }
-
-    // function _incrementNonce(address owner) internal virtual returns(uint256 current) {
-    //     CountersUpgradeable.Counter storage nonce = nonces[owner];
-    //     current = nonce.current();
-    //     nonce.increment();
-    // }
-
-
-    function burn(address from, uint256 id) public  {
         _burn(from, id, 1);
     }
+
+    function getMintHash(address safeAddr, uint256 id, uint256 _nonce) public view returns(bytes32) {
+        return _hashTypedDataV4(keccak256(abi.encode(MINT_TYPEHASH, safeAddr, id, _nonce)));
+    }
+
+    function getBurnHash(address from, uint256 id, uint256 _nonce) public view returns(bytes32) {
+        return _hashTypedDataV4(keccak256(abi.encode(BURN_TYPEHASH, from, id, _nonce)));
+    }
+
+    function verifySignature(address signer, bytes32 txHash, bytes memory signature) public view returns(bool) {
+        return hasRole(MINTER_ROLE, signer) && SignatureChecker.isValidSignatureNow(signer, txHash, signature);
+    }
+
+    function _incrementNonce(address signer) internal virtual returns(uint256 current) {
+        CountersUpgradeable.Counter storage nonce = nonces[signer];
+        current = nonce.current();
+        nonce.increment();
+    }
+
 
     function transfer(address from, address to, uint256 id) public {
         _safeTransferFrom(from, to, id, 1, "");
