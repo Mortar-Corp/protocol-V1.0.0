@@ -1,32 +1,41 @@
 require("dotenv").config();
-require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-ethers");
 require("@openzeppelin/hardhat-upgrades");
 require("hardhat-gas-reporter");
-require("solidity-coverage");
-//const privateKeys = process.env.PRIVATE_KEYS || "";
+
 
 module.exports = {
   networks: {
     mrtrTest: {
-      url: `http://35.238.106.48:8545`,
+      url: `http://35.202.235.89:8545/`,
       chainId: 1031,
-      from: [`0x${process.env.MRTR_PRIVATE_KEY}`],
-      timeout: 20000,   //Cormac: default for Jason-rpc based networks
+      accounts: [process.env.MRTR_PRIVATE_KEY],
+      timeout: 80000,   
     },
   },
   gasReporter: {
-    enabled: (process.env.REPORT_GAS) ? true : false,
-    token: "BRCK",
+    coinmarketcap: process.env.COINMARKETCAP,
+    //token: "BRCK", //we need a Mrtr API to report correctly 
+    currency: "USD",  //I need coinMarketCap API to report in usd;
+    gasPrice: 200,    //our gasPrice?
   },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
+
   solidity: {
-    version: "0.8.13",
-    optimizer: {
-      enabled: true,
-      runs: 10000,
+    version: "0.8.7",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      }
     }
+  },
+  paths: {
+    sources: "./contracts",
+    scripts: "./scripts",
+    tests: "./test",
+    artifacts: "./artifacts",
+    cache: "./cache",
+
   }
 };
