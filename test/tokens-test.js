@@ -10,6 +10,7 @@ describe("Tokens", function() {
      
 
       expect(await instance.name() === "VCToken");
+      console.log(instance.name());
 
     });
   });

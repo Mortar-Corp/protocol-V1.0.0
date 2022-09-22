@@ -3,14 +3,284 @@
   "proxies": [
     {
       "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-      "txHash": "0x3541ac1583c16fb298810e13fe66d7641573f3f02341ab07d33e9a1474326772",
+      "txHash": "0x60fa740ccf2688b777fb7775ee09298c5e75eff240b2af043412d51457c6dc70",
+      "kind": "uups"
+    },
+    {
+      "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "txHash": "0xac1c4cc46b3c2476a53202f9f65dbcdad8f9f77126bdb483a8370d281748c307",
       "kind": "uups"
     }
   ],
   "impls": {
-    "bec968b4271dc10d1603b2f761aa4e369a192d0ce69714029d2862d7a0d67a2a": {
+    "cabef4fa86d722d7035caf61dba25163ba743797f00d0079de1281980984f9b5": {
       "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      "txHash": "0x745819e7951e80bca9dd0aabcc513c3f422d09bfdd6170587027d2a09db3bf1d",
+      "txHash": "0x21bbd56091f21508ef10ad85f6384df1c061f240e384c814374df13cd41e0060",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "contracts\\proxy\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "contracts\\proxy\\Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "contracts\\utils\\ContextUpgradeable.sol:24"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "contracts\\utils\\ERC165Upgradeable.sol:26"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC721HolderUpgradeable",
+            "src": "contracts\\ERC721\\ERC721HolderUpgradeable.sol:38"
+          },
+          {
+            "label": "_manager",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_address",
+            "contract": "Management",
+            "src": "contracts\\access\\Management.sol:17"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "contracts\\proxy\\ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "contracts\\proxy\\UUPSUpgradeable.sol:108"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "252",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "contracts\\security\\ReentrancyGuardUpgradeable.sol:11"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "253",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "contracts\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "estateTokenId",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_uint256",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:44"
+          },
+          {
+            "label": "_estateOwner",
+            "offset": 0,
+            "slot": "303",
+            "type": "t_address",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:45"
+          },
+          {
+            "label": "_owners",
+            "offset": 0,
+            "slot": "304",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:48"
+          },
+          {
+            "label": "_balances",
+            "offset": 0,
+            "slot": "305",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:49"
+          },
+          {
+            "label": "_tokenURIs",
+            "offset": 0,
+            "slot": "306",
+            "type": "t_mapping(t_uint256,t_string_storage)",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:50"
+          },
+          {
+            "label": "_tokenApprovals",
+            "offset": 0,
+            "slot": "307",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:51"
+          },
+          {
+            "label": "_operatorApprovals",
+            "offset": 0,
+            "slot": "308",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:52"
+          },
+          {
+            "label": "existing",
+            "offset": 0,
+            "slot": "309",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:53"
+          },
+          {
+            "label": "estateOwners",
+            "offset": 0,
+            "slot": "310",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(Estate)312_storage))",
+            "contract": "Estates",
+            "src": "contracts\\Estates.sol:54"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+            "label": "mapping(address => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(Estate)312_storage)": {
+            "label": "mapping(address => struct Estates.Estate)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(Estate)312_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct Estates.Estate))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Estate)312_storage": {
+            "label": "struct Estates.Estate",
+            "members": [
+              {
+                "label": "taxIdNo",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "state",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "city",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "zipcode",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tokenName",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "tokenSymbol",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "bec968b4271dc10d1603b2f761aa4e369a192d0ce69714029d2862d7a0d67a2a": {
+      "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "txHash": "0x0e27600df18cad701a800f9ecc783416902027aa966d2cc83e2b27057776a371",
       "layout": {
         "storage": [
           {

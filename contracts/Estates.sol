@@ -1,5 +1,5 @@
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+//SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.8.0 <0.9.0;
 
 import "./proxy/Initializable.sol";
 import "./ERC721/IERC721Upgradeable.sol";
@@ -12,6 +12,8 @@ import "./utils/AddressUpgradeable.sol";
 import "./access/Management.sol";
 import "./security/ReentrancyGuardUpgradeable.sol";
 import "./IEstates.sol";
+import "./proxy/UUPSUpgradeable.sol";
+
 
 
 
@@ -31,6 +33,7 @@ contract Estates is
    ERC721HolderUpgradeable,
    Management, 
    IEstates,
+   UUPSUpgradeable,
    ReentrancyGuardUpgradeable 
  {
 
@@ -329,6 +332,11 @@ contract Estates is
 
       emit Transfer(from, to, tokenId);
    }
+
+   function _authorizeUpgrade(address newImplementation) internal virtual override onlyEstateManager {
+      require(AddressUpgradeable.isContract(newImplementation), "NFT: new Implementation must be a contract");
+      require(newImplementation != address(0), "NFT: set to zero address");
+  }
 
    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory _data) private returns (bool) {
       if (to.isContract()) {
