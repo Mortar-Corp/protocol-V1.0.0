@@ -22,35 +22,9 @@ interface IEstates {
     //emitted when `tokenId` is burned by `callerAddress`
     event Burnedtoken(uint256 tokenId, address callerAddress);
 
-    function __Estates_init(address estateManager, address estateOwner) external;
-
-    function tokenMetadata(uint256 tokenId) external view returns(string memory, string memory);
-
-    function mintEstateToken
-    (
-        string memory tokenName, 
-        string memory tokenSymbol, 
-        string memory estateURI, 
-        uint256 taxIdNo, 
-        string memory state, 
-        string memory city, 
-        uint256 zipcode
-    ) external returns(uint256);
-
-    function tokenURI(uint256 estateTokenId) external view returns(string memory);
-
-    function transferToken(uint256 tokenId, address to) external;
-
     function modifyTokenURI(uint256 tokenId, string memory uri) external;
-
-    function totalSupply() external view returns(uint256);
 
     function changeMetadata(uint256 tokenId, string calldata name, string calldata symbol) external;
 
-    function estateLocation(uint256 tokenId) external view returns(string memory, string memory, uint256);
-
     function burn(uint256 tokenId) external;
-
-    function estateTaxIdNum(uint256 tokenId) external view returns(uint256);
-
 }

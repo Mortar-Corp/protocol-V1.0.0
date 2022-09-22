@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, upgrades, hre} = require("hardhat");
+const { ethers, upgrades} = require("hardhat");
 
 describe("Tokens", function() {
     it('works', async () => {
@@ -8,9 +8,9 @@ describe("Tokens", function() {
     
       const instance = await upgrades.deployProxy(Tokens, {kind: "uups"});
      
-  
 
       expect(await instance.name() === "VCToken");
+
     });
   });
 

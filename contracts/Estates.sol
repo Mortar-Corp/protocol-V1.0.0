@@ -12,7 +12,7 @@ import "./utils/AddressUpgradeable.sol";
 import "./access/Management.sol";
 import "./security/ReentrancyGuardUpgradeable.sol";
 import "./IEstates.sol";
-import "./IEstatesFactory.sol";
+
 
 
 /**
@@ -38,11 +38,9 @@ contract Estates is
    using AddressUpgradeable for address;
 
 
-
-
-   IEstatesFactory private Factory;
    uint256 private estateTokenId;
    address private _estateOwner;
+
 
    mapping(uint256 => address) private _owners;
    mapping(address => uint256) private _balances;
@@ -71,8 +69,6 @@ contract Estates is
       __Management_init();
       __ReentrancyGuard_init();
 
-      Factory = IEstatesFactory(msg.sender);
-      require(msg.sender != address(0), "Estate: Factory is address zero");
       _transferManagementContract(estateManager);
 
       _estateOwner = estateOwner;
@@ -106,16 +102,17 @@ contract Estates is
       uint256 taxIdNo, 
       string memory state, 
       string memory city, 
-      uint256 zipcode
-   ) public virtual override nonReentrant returns(uint) {
+      uint256 zipcode,
+      address to
+   ) public virtual nonReentrant returns(uint) {
       require(msg.sender == _estateOwner, "Estates: not owner");
       require(!existing[taxIdNo], "Estates: duplicate tax id no");
       existing[taxIdNo] = true;
-      estateTokenId = Factory.proxiesCount();
+  
 
-      _safeMint(address(this), estateTokenId);
+      _safeMint(to, estateTokenId);
       _setTokenURI(estateTokenId, estateURI);
-      
+      estateTokenId += 1;
 
       estateOwners[estateTokenId][_estateOwner].tokenName = tokenName;
       estateOwners[estateTokenId][_estateOwner].tokenSymbol = tokenSymbol;
@@ -160,14 +157,9 @@ contract Estates is
       return estateOwners[tokenId][_estateOwner].taxIdNo;
    }
 
-   //`estateManger` only can transfer `tokenId` to `to` address
-   function transferToken(uint256 tokenId, address to) public virtual override onlyEstateManager nonReentrant {
-      _transfer(address(this), to, tokenId);
-   }
-
-   //returns total supply of tokens
-   function totalSupply() public view virtual override returns(uint256) {
-      return estateTokenId;
+   //transfer `tokenId` to `to` address
+   function transferToken(address from, uint256 tokenId, address to) public virtual override nonReentrant {
+      _transfer(from, to, tokenId);
    }
 
    //`estateManger` only can modify `URI` of `tokenId`

@@ -22,6 +22,20 @@ interface IERC721Upgradeable is IERC165Upgradeable {
      */
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
+    //returns token name & symbol
+    function tokenMetadata(uint256 tokenId) external view returns(string memory, string memory);
+
+    //returns token uri 
+    function tokenURI(uint256 estateTokenId) external view returns(string memory);
+
+    //returns state, city, & zipcode
+    function estateLocation(uint256 tokenId) external view returns(string memory, string memory, uint256);
+
+    //returns estate tax Id no
+    function estateTaxIdNum(uint256 tokenId) external view returns(uint256);
+
+    function transferToken(address from, uint256 tokenId, address to) external;
+
     /**
      * @dev Returns the number of tokens in ``owner``'s account.
      */
