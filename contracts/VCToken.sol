@@ -2,16 +2,30 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "./IERC1155Modified.sol";
-import "./IERC1155ReceiverUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "./proxy/Initializable.sol";
+import "./proxy/UUPSUpgradeable.sol";
+import "./access/AccessControlUpgradeable.sol";
+import "./utils/ERC165Upgradeable.sol";
+import "./utils/AddressUpgradeable.sol";
+import "./cryptography/draft-EIP712Upgradeable.sol";
+import "./cryptography/SignatureCheckerUpgradeable.sol";
+import "./Interfaces/IERC1155Modified.sol";
+import "./interfaces/IERC1155ReceiverUpgradeable.sol";
+import "./utils/CountersUpgradeable.sol";
+
+/**
+ *@title VCToken "Verified Cerdentials Token"
+ *@author Sasha Flores
+ *@notice allows US-based entities and individuals globally to mint VCToken
+ * after being verified, so far supported tokens are five.
+ * Mortar grants user "MINTER_ROLE" with deadline of 7 days to mint.
+ * Requirements
+ * - user is granted "MINTER_ROLE"
+ * - deadline is 7 days
+ * - Business Token should be minted to safe
+ * - all other tokens should be minted to address
+ * - only business token is transferable
+ */
 
 contract VCToken is 
     Initializable, 
@@ -37,7 +51,7 @@ contract VCToken is
     mapping(address => CountersUpgradeable.Counter) private nonces;
     mapping(uint256 => address) private clientIds;
 
-
+    mapping(address => uint256) private _holderToken;
     mapping(uint256 => uint256) private _totalSupply;
     mapping(uint256 => mapping(address => uint256)) private _balances;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
@@ -51,11 +65,11 @@ contract VCToken is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    //keccak256("Mint(address safeAddr,uint256 id,uint256 nonce)");
+    //keccak256("Mint(address to,uint256 id,uint256 nonce)");
     bytes32 private constant MINT_TYPEHASH = 0x279388c14884869d3e0da2f2cfb5b39b078ff26698c43946808e11962eb61cad;
 
     //keccak256("Burn(address from,uint256 id,uint256 nonce)")
-    bytes32 private constant BURN_TYPEHASH = 0x65ec0a3d9b23902e2fe999689a69e8e5ad5bcaab57b8635aec70eaae30d3d87f;
+    bytes32 private constant BURN_TYPEHASH = 0xa53b9b633e60c98d0ba266e3e9f0b79181e74b680a5998368333c1f15f06484a;
 
     
 
@@ -95,12 +109,22 @@ contract VCToken is
         return id;
     }
 
+    // returns user address by on-chain `clientId`
     function getClientAddress(uint256 clientId) public view returns(address) {
         return clientIds[clientId];
     }
 
+    // returns `tokenId` of each `owner`
+    function ownerToken(address owner) public view returns(uint256) {
+        return _holderToken[owner];
+    }
+
+    /**
+     * `ADMIN_ROLE` grants `MINTER_ROLE` to `signer` to mint & burn token 
+     * starts the timer of 7 days to mint once `setMinter` is provoked
+     */
     function setMinter(address signer) public virtual onlyRole(ADMIN_ROLE) returns(uint256) {
-        require(signer != address(0), "non zero address only");
+        require(signer != address(0), "VCToken: non zero address only");
         clientsCount.increment();
         uint256 clientId = clientsCount.current();
         clientIds[clientId] = signer;
@@ -109,22 +133,36 @@ contract VCToken is
         return clientId;
     }
 
-    function getNonce(address account) public view returns(uint256) {
-        return nonces[account].current();
+    // returns `nonce` of `signer`
+    function getNonce(address signer) public view returns(uint256) {
+        return nonces[signer].current();
     }
 
-    function mint(address safeAddr, uint256 id, bytes calldata signature) public {
+    /**
+     * Requirements:
+     * - has `MINTER_ROLE`
+     * - if `id` is 1 `to` should be contract
+     * - balance before mint is zero
+     * - mint before deadline
+     * see `_beforeTokenTransfer`
+     */
+    function mint(address to, uint256 id, bytes calldata signature) public {
         uint256 end = start + EXPIRY;
-        require(block.timestamp < end, "expired deadline");
-        require(AddressUpgradeable.isContract(safeAddr), "mint is safe only");
+        require(block.timestamp < end, "VCToken: expired deadline");
+        require(balanceOf(to, id) == 0, "VCToken: balance should be 0 before minting");
+        
         address signer = msg.sender;
-      
-        bytes32 txHash = getMintHash(safeAddr, id, _incrementNonce(signer));
-        require(verifySignature(signer, txHash, signature), "invalid signature");
+        bytes32 txHash = getMintHash(to, id, _incrementNonce(signer));
+        require(verifySignature(signer, txHash, signature), "VCToken: invalid signature");
 
-        _mint(safeAddr, id, 1, "");
+        _mint(to, id, 1, "");
     }
 
+    /**
+     * Requirements:
+     * - has `MINTER_ROLE`
+     * see `_beforeTokenTransfer`
+     */
     function burn(address from, uint256 id, bytes calldata signature) public  {
         address signer = msg.sender;
         bytes32 txHash = getBurnHash(from, id, _incrementNonce(signer));
@@ -133,6 +171,7 @@ contract VCToken is
         _burn(from, id, 1);
     }
 
+    
     function getMintHash(address safeAddr, uint256 id, uint256 _nonce) public view returns(bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(MINT_TYPEHASH, safeAddr, id, _nonce)));
     }
@@ -142,18 +181,17 @@ contract VCToken is
     }
 
     function verifySignature(address signer, bytes32 txHash, bytes memory signature) public view returns(bool) {
-        return hasRole(MINTER_ROLE, signer) && SignatureChecker.isValidSignatureNow(signer, txHash, signature);
+        return hasRole(MINTER_ROLE, signer) && SignatureCheckerUpgradeable.isValidSignatureNow(signer, txHash, signature);
+    }
+
+    function getSigner(bytes32 txHash, bytes memory signature) public view returns(address) {
+        return ECDSAUpgradeable.recover(txHash, signature);
     }
 
     function _incrementNonce(address signer) internal virtual returns(uint256 current) {
         CountersUpgradeable.Counter storage nonce = nonces[signer];
         current = nonce.current();
         nonce.increment();
-    }
-
-
-    function transfer(address from, address to, uint256 id) public {
-        _safeTransferFrom(from, to, id, 1, "");
     }
 
     function name() public pure virtual override returns(string memory) {
@@ -168,6 +206,10 @@ contract VCToken is
         return _symbol;
     }
 
+    function version() public pure returns(string memory) {
+        return "1.0.0";
+    }
+
     function balanceOf(address account, uint256 id) public view virtual override returns (uint256) {
         require(account != address(0), "VCToken: address zero is not a valid owner");
         return _balances[id][account];
@@ -177,7 +219,7 @@ contract VCToken is
         return _totalSupply[id];
     }
 
-    function minted(uint256 id) public view returns(bool) {
+    function exists(uint256 id) public view returns(bool) {
         return VCToken.totalSupply(id) > 0;
     }
 
@@ -221,8 +263,12 @@ contract VCToken is
         uint256 amount,
         bytes memory data
     ) internal virtual {
+        address operator = _msgSender();
         require(id <= availableIds.length, "VCToken: requested id unavailable");
-        address operator = _msgSender();     
+        if(id == 1) {
+            require(AddressUpgradeable.isContract(to), "mint business token to safe only");
+        }
+        
         _beforeTokenTransfer(operator, address(0), to, id, amount, data);
         _doSafeTransferAcceptanceCheck(operator, address(0), to, id, amount, data);
     }
@@ -259,6 +305,7 @@ contract VCToken is
         if(from == address(0) && to != address(0)) {
             _balances[id][to] += amount;
             _totalSupply[id] += amount;
+            _holderToken[to] = id;
             emit Transfer(operator, address(0), to, id, amount);
         }
         if(from !=address(0) && to == address(0)) {
@@ -269,6 +316,8 @@ contract VCToken is
             uint256 fromBal = _balances[id][from];
            require(fromBal >= amount, "VCToken: burn amount exceeds balance");
            _balances[id][from] = fromBal - amount;
+
+           delete _holderToken[from];
 
            emit Transfer(operator, from, address(0), id, amount);
         }
@@ -281,7 +330,7 @@ contract VCToken is
                 emit Transfer(operator, from, to, id, amount);
             } else {
                 emit FailedTransfer(operator, from, to, id);
-                revert("only business transfer");
+                revert("VCToken: only business transfer");
             }
         } 
     }
@@ -307,6 +356,10 @@ contract VCToken is
         }
     }
 
+    /**
+     * only `ADMIN_ROLE` is allowed to upgrade contract to next version
+     * `newImplementation` should be a contract and non zero address
+     */
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyRole(ADMIN_ROLE) {
     require(AddressUpgradeable.isContract(newImplementation), "NFT: new Implementation must be a contract");
     require(newImplementation != address(0), "NFT: set to zero address");

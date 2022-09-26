@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../Interfaces/IERC165Upgradeable.sol";
+import "./IERC165Upgradeable.sol";
 
 interface IERC1155ReceiverUpgradeable is IERC165Upgradeable {
 
