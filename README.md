@@ -1,45 +1,38 @@
-# Advanced Sample Hardhat Project
+# Protocol-V1.0.0
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+## Testnet Deployment: cement
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+The repository consists of the following contracts:
 
-Try running some of the following tasks:
+**1. VCToken:** Verified Credential Token at a constant address 0x7EF2e0048f5bAeDe046f6BF797943daF4ED8CB47 - has to be updated every time redeployed.
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.js
-node scripts/deploy.js
-npx eslint '**/*.js'
-npx eslint '**/*.js' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
-```
+There 5 available tokens as follows:
 
-# Etherscan verification
+1. BUSINESS: US-based business is only allowed.
+2. US_PERSON: US-citizen registering with SSN 
+3. INT_PERSON: Global individual registering with valid Gov-Id and valid passport.
+4. US_ACCREDITED_INVESTOR: US-citizen Accredited Investor
+5. INT_ACCREDITED_INVESTOR: non Us-citizen Accredited Investor
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+*Note: EIP712 & signature checker is used to verify user*
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
 
-```shell
-hardhat run --network ropsten scripts/deploy.js
-```
+**2. IERC1155Modified:** OZ modified IERC1155Upgradeable since `mintBatch` and all batch related functions will never be used. This is the interface of `VCToken`
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+**3. Estate:** is the logic contract used to initiate `BeaconProxy` for each estate:
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
-# protocol-V1.0.0
-# protocol-V1.0.0
-# protocol-V1.0.0
+ - estate owner: can choose token name, token symbol, & token URI.
+ - can mint one token for each contract 
+ - mint requires at least 2 BRCK to go through
+
+**4. IERC721Modified:** OZ IERC721Upgradeable contract modified which is the interface of `Estate` contract.
+
+**5. EstateFactory:** deployed with `UpgradeableBeacon` to initiate logic and based on different access levels of control:
+
+ 1. `DEFAULT_AMIN_ROLE`: is the contract deployer
+ 2. `UPGRADER_ROLE`: responsible for upgradeability, pausing, & unpausing operations.
+ 3. `MANAGER_ROLE`: can change proxy token name, symbol, &/or URI when necessary.
+
+ - owner will not be able to list his estate unless he is verified
+ - listing require a min 1 BRCK to be able to list your estate
+

@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.2;
 
-import "./IBeaconUpgradeable.sol";
-import "./draft-IERC1822Upgradeable.sol";
+import "../interfaces/IBeaconUpgradeable.sol";
+import "../interfaces/draft-IERC1822Upgradeable.sol";
 import "../utils/AddressUpgradeable.sol";
 import "../utils/StorageSlotUpgradeable.sol";
 import "./Initializable.sol";

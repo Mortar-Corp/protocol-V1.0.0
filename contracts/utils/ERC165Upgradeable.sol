@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IERC165Upgradeable.sol";
+import "../interfaces/IERC165Upgradeable.sol";
 import "../proxy/Initializable.sol";
 
 
