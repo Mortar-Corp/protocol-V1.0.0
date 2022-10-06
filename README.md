@@ -14,6 +14,8 @@ There 5 available tokens as follows:
 4. US_ACCREDITED_INVESTOR: US-citizen Accredited Investor
 5. INT_ACCREDITED_INVESTOR: non Us-citizen Accredited Investor
 
+- **user will have 7 days to mint his token after receiving an email with instructions and link**
+
 *Note: EIP712 & signature checker is used to verify user*
 
 
