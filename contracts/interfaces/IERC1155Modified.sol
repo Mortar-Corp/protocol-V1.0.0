@@ -39,7 +39,7 @@ interface IERC1155Modified is IERC165Upgradeable {
 
     function holderTokenId(address holder) external view returns(uint256);
 
-    function holderIdMinted(address holder) external view returns(bool);
+    function isVerified(address holder) external view returns(bool);
 
     function mint(address to, uint256 id, bytes memory signature) external;
 

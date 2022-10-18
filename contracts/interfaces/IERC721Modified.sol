@@ -22,7 +22,7 @@ interface IERC721Modified is IERC165Upgradeable {
      */
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
-    function __Estate_init(address safeAddress, address owner, uint256 taxId) external;
+    function __Estate_init(address safeAddress, address owner, uint256 taxId) external payable;
 
     function tokenMetadata(uint256 tokenId) external view returns(string memory, string memory, string memory);
 

@@ -20,6 +20,7 @@ import "./interfaces/IManager.sol";
  *@dev This contract inherits from OZ ERC721 with other security contracts
  * this version is designed on semi-decentralized deployment design pattern
  * which grants Mortar Blockchain the right to manage token held in this contract.
+ * fixed minting fee of 2 BRCKs
  */
 
 contract Estate is 
@@ -42,7 +43,7 @@ contract Estate is
    uint256 private _taxId;
    bool private minted = false;
    
-   uint256 public constant MINT_COST = 2 * 10e9;
+   uint256 public constant MINT_FEE = 2 * 10e9;
    
 
    mapping(uint256 => address) private _owners;
@@ -67,7 +68,7 @@ contract Estate is
       address safeAddress, 
       address owner, 
       uint256 taxId
-   ) public override initializer nonReentrant {
+   ) public payable override initializer nonReentrant {
       __Ownable_init();
       __ReentrancyGuard_init();
 
@@ -77,8 +78,6 @@ contract Estate is
 
       factory = IEstateFactory(msg.sender);
       require(msg.sender != address(0), "Estate: Factory is address zero");
-      transferOwnership(_owner);
-
    }
 
    function mintEstateToken
@@ -91,7 +90,7 @@ contract Estate is
       string memory tokenURI
    ) public payable virtual override onlyOwner nonReentrant returns(uint) {
       require(minted == false, "Estate: estate token minted");
-      require(msg.value >= MINT_COST, "Estate: mint requires 2 brcks");
+      require(msg.value >= MINT_FEE, "Estate: mint requires 2 brcks");
       _tokenId = factory.proxiesCount();
       _safeMint(_safeAddress, _tokenId);
       _setTokenURI(_tokenId, tokenURI);
@@ -107,7 +106,7 @@ contract Estate is
 
 
    //change `name` & `symbol` of `tokenId`
-   //accessible by `estateManger` only
+   //accessible by `Manger` only from EstateFactory only
    function modifyTokenMetadata(uint256 tokenId, string memory name, string memory symbol) public virtual override
    {
       _notPaused();
@@ -142,6 +141,8 @@ contract Estate is
       _transfer(_safeAddress, to, tokenId);
    }
 
+   //change `tokenURI` of `tokenId`
+   //accessible by `Manger` only from EstateFactory only
    function modifyTokenURI(uint256 tokenId, string memory uri) public virtual override {
       _notPaused();
       require(_msgSender() == address(factory), "Estate: unauthorized call");
@@ -172,6 +173,8 @@ contract Estate is
 
     super.supportsInterface(interfaceId);
   }
+
+
 
    function burn(uint256 tokenId) public virtual override onlyOwner {
       _burn(tokenId);
