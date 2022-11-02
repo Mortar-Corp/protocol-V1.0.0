@@ -1,22 +1,13 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.5.0) (proxy/ERC1967/ERC1967Upgrade.sol)
-
 pragma solidity ^0.8.2;
 
-import "../beacon/IBeaconUpgradeable.sol";
-import "../../interfaces/draft-IERC1822Upgradeable.sol";
-import "../../utils/AddressUpgradeable.sol";
-import "../../utils/StorageSlotUpgradeable.sol";
-import "../utils/Initializable.sol";
+import "../interfaces/IBeaconUpgradeable.sol";
+import "../interfaces/draft-IERC1822Upgradeable.sol";
+import "../utils/AddressUpgradeable.sol";
+import "../utils/StorageSlotUpgradeable.sol";
+import "../proxy/Initializable.sol";
 
-/**
- * @dev This abstract contract provides getters and event emitting update functions for
- * https://eips.ethereum.org/EIPS/eip-1967[EIP1967] slots.
- *
- * _Available since v4.1._
- *
- * @custom:oz-upgrades-unsafe-allow delegatecall
- */
+
 abstract contract ERC1967UpgradeUpgradeable is Initializable {
     function __ERC1967Upgrade_init() internal onlyInitializing {
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IBeacon.sol";
+import "../interfaces/IBeacon.sol";
 import "./Proxy.sol";
 import "./ERC1967Upgrade.sol";
 

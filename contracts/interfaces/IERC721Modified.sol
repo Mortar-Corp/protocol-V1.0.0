@@ -6,7 +6,7 @@ import "../interfaces/IERC165Upgradeable.sol";
 /**
  * @dev Required interface of an ERC721 compliant contract.
  */
-interface IERC721Upgradeable is IERC165Upgradeable {
+interface IERC721Modified is IERC165Upgradeable {
     /**
      * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
      */
@@ -22,6 +22,10 @@ interface IERC721Upgradeable is IERC165Upgradeable {
      */
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
+    function __Estate_init(address safeAddress, address owner, uint256 taxId) external payable;
+
+    function tokenMetadata(uint256 tokenId) external view returns(string memory, string memory, string memory);
+
     /**
      * @dev Returns the number of tokens in ``owner``'s account.
      */
@@ -35,6 +39,25 @@ interface IERC721Upgradeable is IERC165Upgradeable {
      * - `tokenId` must exist.
      */
     function ownerOf(uint256 tokenId) external view returns (address owner);
+
+    function mintEstateToken
+    (
+        string memory state, 
+        string memory city, 
+        uint256 zipcode,
+        string memory tokenName, 
+        string memory tokenSymbol, 
+        string memory tokenURI
+    ) external returns(uint256);
+
+    function version() external pure returns(string memory);
+    
+    function totalSupply() external view returns(uint256);
+
+    function estateLocation(uint256 tokenId) external view returns(string memory, string memory, uint256);
+
+
+    function burn(uint256 tokenId) external;
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`.

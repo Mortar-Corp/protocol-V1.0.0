@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import "./IERC165Upgradeable.sol";
+import "../interfaces/IERC165Upgradeable.sol";
 
 interface IERC1155Modified is IERC165Upgradeable {
 
@@ -19,6 +19,10 @@ interface IERC1155Modified is IERC165Upgradeable {
 
     event URI(string value, uint256 indexed id);
 
+    function totalSupply(uint256 id) external view returns(uint256);
+
+    function exists(uint256 id) external view returns(bool);
+
     function balanceOf(address account, uint256 id) external view returns (uint256);
 
     function setApprovalForAll(address operator, bool approved) external;
@@ -30,6 +34,16 @@ interface IERC1155Modified is IERC165Upgradeable {
     function name() external pure returns(string memory);
 
     function symbol() external pure returns(string memory);
+
+    function getClientAddress(uint256 clientId) external view returns(address);
+
+    function holderTokenId(address holder) external view returns(uint256);
+
+    function isVerified(address holder) external view returns(bool);
+
+    function mint(address to, uint256 id, bytes memory signature) external;
+
+    function burn(address from, uint256 id, bytes memory signature) external;
 
     function safeTransferFrom(
         address from,

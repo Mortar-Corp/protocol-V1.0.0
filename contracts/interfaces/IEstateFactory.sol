@@ -3,49 +3,45 @@ pragma solidity >=0.8.0 <0.9.0;
 
 
 interface IEstateFactory {
-
-    //emitted when factory contract is deployed by `upgrader` & initiate`estateBeacon`
     event FactoryInit(address indexed upgrader, address estateBeacon);
     
-    /**  
-     * emitted when `deployer` initiate `proxyAddress` that has `proxyId` 
-     * & list `safeAddress` where tokens will be minted.
-     */
     event ProxyDeployed
     (
         uint256 proxyId, 
         address proxyAddress, 
         address indexed safeAddress, 
-        address indexed deployer 
+        address indexed initiator 
     );
     
-    /**
-     *@notice  deployer is the `owner` of factory responsible of upgradability,
-     * pausing & unpausing operations.
-     *
-     * emits `FactoryInit` event
-     */
-    function __EstateFactory_init() external;
+
+    function __EstateFactory_init(address upgrader) external;
 
 
-    function tokenizeEstate(address safeAddress) external returns(address);
+    function tokenizeEstate(address safeAddress, uint256 taxId) external returns(address);
 
 
-    //gets proxy contract address `estateOwner` address
-    function allSafeEstates(address safeAddress) external view returns(address[] memory);
+    function allOwnerEstates(address owner) external view returns(address[] memory);
 
-    //gets an array of all proxy addresses
+    function totalOwnerEstates(address owner) external view returns(uint256);
+
+    function ownerEstateAddr(address owner, uint256 id) external view returns(address);
+
+    function contractAddr(uint256 taxId) external view returns(address);
+
     function allProxies() external view returns(address[] memory);
 
-    //gets total count of proxies
     function proxiesCount() external view returns(uint256);
 
-    //gets proxy address by it's `num`
     function proxyAddrById(uint256 num) external view returns(address);
 
- 
+    function modifyProxyURI(address estateContract, uint256 tokenId, string memory newURI) external returns(bool);
+
+    function modifyProxyMetadata(address estateContract, uint256 tokenId, string memory newName, string memory newSymbol) external returns(bool);
+
     function emergencyPause() external;
 
     function emergencyUnpause() external;
+
+    function isPaused() external view returns(bool);
 
 }

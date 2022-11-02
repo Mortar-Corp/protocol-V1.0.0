@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-import "./IBeacon.sol";
-import "./draft-IERC1822.sol";
+import "../interfaces/IBeacon.sol";
+import "../interfaces/draft-IERC1822.sol";
 import "../utils/Address.sol";
 import "../utils/StorageSlot.sol";
 
