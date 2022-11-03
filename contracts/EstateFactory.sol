@@ -10,29 +10,19 @@ import "./interfaces/IEstateFactory.sol";
 import "./interfaces/IERC721Modified.sol";
 import "./interfaces/IERC1155Modified.sol";
 import "./Estate.sol";
-import "./VCTest.sol";
 
-/**
- *@title EstateFactory
- *@author Sasha Flores
- *@dev only accessible to VCT holders, with taxid as filter to prevent 
- * dupliacte listing of any estate, with listing fee of 1 BRCK.
- */
 
 contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeable, PausableUpgradeable {
 
 
   address private estateBeacon;
-  address private constant VCT = 0xb27A31f1b0AF2946B7F582768f03239b1eC07c2c;
+  address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
 
 
   address[] private proxies;
-  mapping(address => address[]) private safeEstates;
+  mapping(address => address[]) private ownerEstates;
+  mapping(uint256 => address) private taxAddress;
   mapping(uint256 => bool) existing;
-
-  //BRCK 1 = 10**9
-  uint256 public  constant BASE = 10e9;
-  uint256 public constant LISTING_FEE = 1 * BASE;
 
   bytes32 public constant ADMIN_ROLE = keccak256(abi.encodePacked("ADMIN_ROLE"));
   bytes32 public constant MANAGER_ROLE = keccak256(abi.encodePacked("MANAGER_ROLE"));
@@ -56,15 +46,11 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
   }
 
 
-  function tokenizeEstate(address safeAddress, uint256 taxId) public payable virtual override whenNotPaused returns(address) {
-    require(
-      IERC1155Modified(VCT).isVerified(safeAddress) || 
-      IERC1155Modified(VCT).isVerified(msg.sender),
-      "EstateFactory: verified holders only"
-    );
+  function tokenizeEstate(address safeAddress, uint256 taxId) public virtual override whenNotPaused returns(address) {
+    require(IERC1155Modified(VCT).isVerified(msg.sender),"EstateFactory: verified holders only");
     require(!existing[taxId], "EstateFactory: tax ID exists");
     existing[taxId] = true;
-    require(msg.value >= LISTING_FEE, "EstateFactory: listing cost is 1 BRCK");
+
     BeaconProxy proxy = new BeaconProxy(
       estateBeacon, 
       abi.encodeWithSelector(
@@ -76,11 +62,14 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
     );
 
     address estateProxy = address(proxy);
+    proxies.push(estateProxy);
     uint256 proxyCount = proxies.length;
     Estate(estateProxy).transferOwnership(msg.sender);
-    proxies.push(estateProxy);
-    safeEstates[safeAddress].push(estateProxy);
+    
+    taxAddress[taxId] = estateProxy;
 
+    ownerEstates[msg.sender].push(estateProxy);
+   
     emit ProxyDeployed(proxyCount, estateProxy, safeAddress, _msgSender());
     
     return estateProxy;
@@ -91,7 +80,6 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
     return hasRole(MANAGER_ROLE, manager);
   }
 
-  //modify `tokenURI` of `estateContract` & `tokenId` accessible only manager
   function modifyProxyURI(address estateContract, uint256 tokenId, string memory newURI) public virtual override onlyRole(MANAGER_ROLE) whenNotPaused returns(bool){
     (bool success, ) = 
     estateContract.call(abi.encodeWithSelector(Estate.modifyTokenURI.selector, tokenId, newURI));
@@ -99,7 +87,6 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
     return  success;
   }
 
-  //modify tokenMetadata of `estateContract` & `tokenId` accessible only manager
   function modifyProxyMetadata(address estateContract, uint256 tokenId, string memory newName, string memory newSymbol) public virtual override onlyRole(MANAGER_ROLE) whenNotPaused returns(bool) {
     (bool success, ) = 
     estateContract.call(abi.encodeWithSelector(Estate.modifyTokenMetadata.selector, tokenId, newName, newSymbol));
@@ -107,49 +94,53 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
     return success;
   }
 
-  //returns all estates listed to `safeAddress`
-  function allSafeEstates(address safeAddress) external view virtual override returns(address[] memory) {
-    return safeEstates[safeAddress];
+  function allOwnerEstates(address owner) external view virtual override returns(address[] memory) {
+    return ownerEstates[owner];
   }
 
-  //upgradeable beacon address
+  function totalOwnerEstates(address owner) external view virtual override returns(uint256) {
+    return ownerEstates[owner].length;
+  }
+
+  function ownerEstateAddr(address owner, uint256 id) external view virtual override returns(address) {
+    return ownerEstates[owner][id];
+  }
+
+  function contractAddr(uint256 taxId) external view virtual override returns(address) {
+    return taxAddress[taxId];
+  }
+
   function getEstateBeacon() external view virtual returns(address) {
     return estateBeacon;
   }
 
-  //returns all addresses of proxies 
   function allProxies() external view virtual override returns(address[] memory) {
     return proxies;
   }
 
-  //reurns total estates proxies 
   function proxiesCount() external view virtual override returns(uint256) {
     return proxies.length;
   }
 
-  //returns estate contract address 
   function proxyAddrById(uint256 num) external view override returns(address) {
     return proxies[num];
   }
 
-  //checks if taxId has been used before 
   function taxIdExists(uint256 taxId) public view returns(bool) {
     return existing[taxId];
   }
 
-  //pause ops in factory and impl. accessible by upgrader only
   function emergencyPause() external virtual override onlyRole(UPGRADER_ROLE) {
     _pause();
   }
 
-  //unpause ops in factory and impl. accessible by upgrader only
   function emergencyUnpause() external virtual override onlyRole(UPGRADER_ROLE) {
     _unpause();
   }
 
-  //returns true if pause & false if not puased
   function isPaused() public view virtual override returns(bool) {
     return paused();
   }
+
 
 }

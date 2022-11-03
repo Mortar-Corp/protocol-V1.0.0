@@ -1,343 +1,129 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import "./interfaces/IERC20Upgradeable.sol";
+import "./token/ERC20Upgradeable.sol";
 import "./proxy/Initializable.sol";
-import "./utils/ContextUpgradeable.sol";
+import "./security/PausableUpgradeable.sol";
+import "./access/OwnableUpgradeable.sol";
+import "./proxy/UUPSUpgradeable.sol";
+import "./utils/AddressUpgradeable.sol";
+import "./interfaces/IERC1155Modified.sol";
 
-contract Ampersand is Initializable, IERC20Upgradeable, ContextUpgradeable {
-
-    mapping(address => uint256) private _balances;
-
-    mapping(address => mapping(address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-    uint8 private constant _decimals = 6;
-
-    string private _name;
-    string private _symbol;
+contract Ampersand is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+    using AddressUpgradeable for address;
 
 
-    function __Ampersand_init(string memory name_, string memory symbol_) public initializer {
-        _name = name_;
-        _symbol = symbol_;
+    mapping(address => uint256) private mintAllowances;
+    mapping(address => bool) private isMinter;
+    mapping(address => bool) private isManager;
+    uint256 private totalManagers;
+
+    address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
+
+
+    string private constant _name = "Ampersand";
+    string private constant _symbol = "AND";
+
+    event ManagerSet(address indexed manager, uint256 count);
+    event ManagerRemoved(address manager);
+    event MintAllowance(address indexed caller, address minter, uint256 amount);
+
+    function __Ampersand_init() public virtual initializer {
+        __Ownable_init();
+        __Pausable_init();
+        __UUPSUpgradeable_init();
     }
 
-    function mintAND(address safe, uint256 amount) public {
+    function setManager(address manager) public virtual onlyOwner {
+        require(manager != address(0), "zero address");
+        require(!_isManager(manager), "duplicate manager");
+        isManager[manager] = true;
+        totalManagers ++;
+        emit ManagerSet(manager, totalManagers);
+    }
+    
+    function removeManager(address manager) public virtual onlyOwner {
+        require(_isManager(manager), "manager doesnot exist");
+        isManager[manager] = false;
+        totalManagers --;
+        emit ManagerRemoved(manager);
+    }
+
+    function setMinter(address minter, uint256 amount) public virtual {
+        require(msg.sender == owner() || _isManager(msg.sender), "neither owner nor manager");
+        mintAllowances[minter] = amount;
+        emit MintAllowance(msg.sender, minter, amount);
+    }
+
+  
+    function mint(address safe, uint256 amount) public virtual {
+        require(AddressUpgradeable.isContract(safe), "safe is not contract");
+        require(IERC1155Modified(VCT).isVerified(msg.sender), "Ampersand: unverified account");
+        require(_isMinter(msg.sender), "Ampersand: unauthorized minter");
+        uint256 toMint = mintAllowances[msg.sender];
+        require(toMint == amount, "Ampersand: mint exact allowance");
+        unchecked {
+            mintAllowances[msg.sender] = toMint - amount;
+        }
+
         _mint(safe, amount);
     }
 
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() public view virtual returns (string memory) {
+    function minterAllowance(address minter) external view virtual returns(uint256) {
+        return mintAllowances[minter];
+    }
+
+    function burn(uint256 amount) public virtual onlyOwner {
+        require(amount > 0, "nothing to burn");
+        _burn(address(this), amount);
+    }
+
+    function _isMinter(address minter) public view virtual returns(bool) {
+        return isMinter[minter];
+    }
+
+    function managersCount() external view virtual returns(uint256) {
+        return totalManagers;
+    }
+
+    function name() public view virtual override returns(string memory){
         return _name;
     }
 
-    /**
-     * @dev Returns the symbol of the token, usually a shorter version of the
-     * name.
-     */
-    function symbol() public view virtual returns (string memory) {
+    function symbol() public view virtual override returns(string memory) {
         return _symbol;
     }
 
-
-    function decimals() public view virtual returns (uint8) {
-        return _decimals;
+    function pauseOps() public virtual onlyOwner{
+        _pause();
     }
 
-    /**
-     * @dev See {IERC20-totalSupply}.
-     */
-    function totalSupply() public view virtual override returns (uint256) {
-        return _totalSupply;
+    function unpauseOps() public virtual onlyOwner {
+        _unpause();
+    } 
+
+    function isPaused() public view virtual returns(bool) {
+       return paused();
     }
 
-    /**
-     * @dev See {IERC20-balanceOf}.
-     */
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        return _balances[account];
+    function _isManager(address manager) public view virtual returns(bool) {
+        return isManager[manager];
     }
 
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
-     */
-    function transfer(address to, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, amount);
-        return true;
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+        require(!paused(), "token transfer paused");
     }
 
-    /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
+    function _approve(address owner, address spender, uint256 amount) internal virtual override {
+        super._approve(owner, spender, amount);
+        require(!paused(), "approvals paused");
     }
 
-    /**
-     * @dev See {IERC20-approve}.
-     *
-     * NOTE: If `amount` is the maximum `uint256`, the allowance is not updated on
-     * `transferFrom`. This is semantically equivalent to an infinite approval.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     */
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, amount);
-        return true;
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {
+        require(AddressUpgradeable.isContract(newImplementation), "new Implementation must be a contract");
+        require(newImplementation != address(0), "zero address error");
     }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * NOTE: Does not update the allowance if the current allowance
-     * is the maximum `uint256`.
-     *
-     * Requirements:
-     *
-     * - `from` and `to` cannot be the zero address.
-     * - `from` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``from``'s tokens of at least
-     * `amount`.
-     */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public virtual override returns (bool) {
-        address spender = _msgSender();
-        _spendAllowance(from, spender, amount);
-        _transfer(from, to, amount);
-        return true;
-    }
-
-    /**
-     * @dev Atomically increases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     */
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, allowance(owner, spender) + addedValue);
-        return true;
-    }
-
-    /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     * - `spender` must have allowance for the caller of at least
-     * `subtractedValue`.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        unchecked {
-            _approve(owner, spender, currentAllowance - subtractedValue);
-        }
-
-        return true;
-    }
-
-    /**
-     * @dev Moves `amount` of tokens from `from` to `to`.
-     *
-     * This internal function is equivalent to {transfer}, and can be used to
-     * e.g. implement automatic token fees, slashing mechanisms, etc.
-     *
-     * Emits a {Transfer} event.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `from` must have a balance of at least `amount`.
-     */
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
-        _beforeTokenTransfer(from, to, amount);
-        _afterTokenTransfer(from, to, amount);
-    }
-
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     */
-    function _mint(address account, uint256 amount) internal virtual {
-        _beforeTokenTransfer(address(0), account, amount);
-        _afterTokenTransfer(address(0), account, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens.
-     */
-    function _burn(address account, uint256 amount) internal virtual {
-        _beforeTokenTransfer(account, address(0), amount);
-        _afterTokenTransfer(account, address(0), amount);
-    }
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
-     *
-     * This internal function is equivalent to `approve`, and can be used to
-     * e.g. set automatic allowances for certain subsystems, etc.
-     *
-     * Emits an {Approval} event.
-     *
-     * Requirements:
-     *
-     * - `owner` cannot be the zero address.
-     * - `spender` cannot be the zero address.
-     */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    /**
-     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
-     *
-     * Does not update the allowance amount in case of infinite allowance.
-     * Revert if not enough allowance is available.
-     *
-     * Might emit an {Approval} event.
-     */
-    function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        uint256 currentAllowance = allowance(owner, spender);
-        if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
-            unchecked {
-                _approve(owner, spender, currentAllowance - amount);
-            }
-        }
-    }
-
-    /**
-     * @dev Hook that is called before any transfer of tokens. This includes
-     * minting and burning.
-     *
-     * Calling conditions:
-     *
-     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-     * will be transferred to `to`.
-     * - when `from` is zero, `amount` tokens will be minted for `to`.
-     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
-     * - `from` and `to` are never both zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
-        // 1-_mint 
-        // 2- _burn
-        // 3- _transfer
-        if(from == address(0)) {
-            require(to != address(0), "ERC20: mint to zero address");
-            _totalSupply += amount;
-            unchecked {
-                _balances[to] += amount;
-            }
-        emit Transfer(address(0), to, amount);
-        } else if(to == address(0)) {
-            require(from != address(0), "ERC20: burn from zer address");
-            uint256 accountBalance = _balances[from];
-            require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-            unchecked {
-                _balances[from] = accountBalance - amount;
-                _totalSupply -= amount;
-            }
-        emit Transfer(from, address(0), amount);
-        } else {
-            require(from != address(0), "ERC20: transfer from zero address");
-            require(to != address(0), "ERC20: transfer to zero address");
-            uint256 fromBalance = _balances[from];
-            require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
-            unchecked {
-                _balances[from] = fromBalance - amount;
-                _balances[to] += amount;
-            }
-        emit Transfer(from, to, amount);
-        }
-    }
-
-    /**
-     * @dev Hook that is called after any transfer of tokens. This includes
-     * minting and burning.
-     *
-     * Calling conditions:
-     *
-     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-     * has been transferred to `to`.
-     * - when `from` is zero, `amount` tokens have been minted for `to`.
-     * - when `to` is zero, `amount` of ``from``'s tokens have been burned.
-     * - `from` and `to` are never both zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
-
 
 }

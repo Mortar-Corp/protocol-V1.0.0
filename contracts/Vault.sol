@@ -19,23 +19,29 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // nft owner variables
-    address private asset;
-    uint256 private assetId;
-    uint256 private price;
-    address payable private seller;
+    address private _nftAddress;
+    uint256 private _nftId;
+    uint256 private sharePrice;
+    uint256 private _supply;
+    address private seller;
     address private nftSafe;
    
-    enum Sale {inactive, active, ended, claimed}
+    enum Sale {inactive, active, ended}
     Sale saleState;
+
+    //invitees
+    mapping(address => bool) private invited;
     
     // fraction owners
     address[] buyers;
     uint256 private buyersCount;
+    uint256 threshold;
 
     // contracts storage
     IVaultFactory private factory;
     IERC20Upgradeable private AND;
-    address private constant VCT = 0xb27A31f1b0AF2946B7F582768f03239b1eC07c2c;
+    address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
+                            
     
     modifier onlySeller() {
         require(msg.sender == seller, "Vault: only seller");
@@ -45,38 +51,39 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     function __Vault_init
     (
         address nftAddress, 
-        uint256 tokenId, 
-        string memory name, 
-        string memory symbol, 
-        uint256 askPrice, 
+        uint256 nftId, 
+        uint256 price,
+        uint256 supply,
+        string memory name_, 
+        string memory symbol_, 
         address safe, 
         address nftOwner
     ) public virtual override initializer {
-        __ERC20_init(name, symbol); 
+        __ERC20_init(name_, symbol_); 
         __ERC721Holder_init();
         __Ownable_init();
 
         factory = IVaultFactory(msg.sender);
         require(msg.sender != address(0), "Vault: factory is zero address");
-        
-        AND = IERC20Upgradeable(0xaE036c65C649172b43ef7156b009c6221B596B8b);
-        bool success = AND.approve(address(this), askPrice);
-        require(success, "Vault: unsuccessful approval");
 
-        nftSafe = safe;
-        seller = payable(nftOwner);
-        price = askPrice;
-        asset = nftAddress;
-        assetId = tokenId;
-        saleState = Sale.inactive;
+        sharePrice = price / supply;
+
+        AND = IERC20Upgradeable(0xaE036c65C649172b43ef7156b009c6221B596B8b);
+        bool success = AND.approve(address(this), (sharePrice * supply));
+        require(success, "Vault: unsuccessful approval");
         
+        nftSafe = safe;
+        seller = nftOwner;
+        _nftAddress = nftAddress;
+        _nftId = nftId;
+        saleState = Sale.inactive;     
     }
 
     function changeMetadata(string memory name, string memory symbol) public virtual override {
         _ifNotPaused;
         require(msg.sender == owner(), "Vault: only mortar is authorized");
-        _name = name;
-        _symbol = symbol;
+        require(saleState != Sale.active,"Vault: sale is active");
+        _modifyMetadata(name, symbol);
         emit MetadataChanged(name, symbol);
     }
 
@@ -84,28 +91,57 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         return saleState;
     }
 
-    function openSale() public virtual override onlySeller {
-        _ifNotPaused;
-        require(saleState == Sale.inactive, "Vault: sale is active or closed");
-        require(IERC721Modified(asset).ownerOf(assetId) == address(this), "Vault: token not recieved");
-        _mint(address(this), price);
-        saleState = Sale.active;
-        emit SaleInit(block.timestamp);
+    // seller invite investors which can buy shares when `openSale`
+    // non zero addresses , no duplicated addresses
+    function invite(address[] memory _invitees) public virtual override onlySeller {
+        require(saleState == Sale.inactive, "Vault: sale is active");
+        for(uint256 i = 0; i < _invitees.length; i ++) {
+            address invitee = _invitees[i];
+            require(invitee != address(0), "Vault: zero address");
+            require(!_isInvited(invitee), "Vault: duplicate address");
+            invited[invitee] = true;
+        }
+        uint256 count = _invitees.length;
+        emit InvitationSend(_invitees, count);
     }
 
-    function getPrice() external view virtual override returns(uint256) {
-        return price;
+    //syndicate is no of shares of `totalSupply` minted directly to seller safe 
+    //minToBuy: is min shares to purchase - not price but shares
+    function openSale(uint256 syndicate, uint256 minToBuy) public virtual override onlySeller {
+        _ifNotPaused;
+        require(saleState == Sale.inactive, "Vault: sale is active or closed");
+        require(IERC721Modified(_nftAddress).ownerOf(_nftId) == address(this), "Vault: token not recieved");
+        require(minToBuy > 0, "Vault: min to buy is zero");
+        
+        if(syndicate == 0) {
+            _mint(address(this), _supply);
+            require(minToBuy < _supply, "Vault: min to buy exceeds supply");
+        } else {
+            uint256 sell = _supply - syndicate;
+            _mint(nftSafe, syndicate);
+            _mint(address(this), sell);
+            require(minToBuy < sell, "Vault: min to buy exceeds shares to sell");
+        }
+    
+        threshold = minToBuy;
+        saleState = Sale.active;
+        emit SaleInit(block.timestamp, syndicate, _supply - syndicate, minToBuy);
     }
 
     function TokenId() external view virtual override returns(uint256) {
-        return assetId;
+        return _nftId;
     }
 
     function assetAddress() external view virtual override returns(address) {
-        return asset;
+        return _nftAddress;
     }
 
-    function buyFractions(address safe, uint256 value) public payable virtual override {
+    // `shares` equal to or greater than `minToBuy` 
+    // & less than or equaol to `availFractions`
+    // to approve `AND` for shares * sharePrice = allowance.
+    // accessible by invitation & to VCT holders only
+    // transfer `AND` from buyer safe to this contract, then to seller safe.
+    function buyFractions(address safe, uint256 shares) public virtual override {
         _ifNotPaused;
         require(saleState == Sale.active, "Vault: sale is not active");
         require(
@@ -113,18 +149,22 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
             "Vault: safe is not contract or zero address"
         );
         require(
-            IERC1155Modified(VCT).isVerified(safe) || 
             IERC1155Modified(VCT).isVerified(msg.sender),
             "EstateFactory: verified holders only"
         );
-        require(value <= totalSupply() && value > 0, "Vault: zero amount or exceeds available fractions");
-        if(value <= AND.allowance(safe, address(this))) {
-            AND.safeTransferFrom(safe, address(this), value);
-            _transfer(address(this), safe, value);
-            emit SoldFractions(msg.sender, value);
+        require(_isInvited(msg.sender), "Vault: missing invitation");
+        require(shares <= availFractions() && shares >= threshold, "Vault: zero amount or exceeds available fractions");
+
+        uint256 sharesPrice = shares * sharePrice;
+        if(sharesPrice <= AND.allowance(safe, address(this))) {
+            AND.safeTransferFrom(safe, address(this), sharesPrice);
+            AND.safeTransfer(nftSafe, sharesPrice);
+            _transfer(address(this), safe, shares);
+            emit SoldFractions(msg.sender, shares);
         } else {
             revert("Vault: insufficient ampersand allowance");
         }
+        
         buyers.push(msg.sender);
         buyersCount = buyers.length;
 
@@ -134,16 +174,11 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
             saleState = Sale.active;
         }
 
-        emit SoldFractions(msg.sender, value);
+        emit SoldFractions(msg.sender, shares);
     }
 
-
-    function claimPayment() public virtual override onlySeller {
-        _ifNotPaused;
-        require(saleState == Sale.ended, "Vault: sale is active");
-        AND.safeTransfer(nftSafe, price);
-        saleState = Sale.claimed;
-        emit SaleClaimed(block.timestamp, price);
+    function pricePerShare() external view virtual override returns(uint256) {
+        return sharePrice;
     }
 
     function allBuyers() external view virtual override returns(address[] memory) {
@@ -158,7 +193,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         return buyers[id];
     }
 
-    function availFractions() external view override returns(uint256) {
+    function availFractions() public view override returns(uint256) {
         return balanceOf(address(this));
     }
 
@@ -170,6 +205,10 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     function _ifNotPaused() private view returns(bool) {
         require(!factory.isOpsPaused(), "Vault: operations paused");
         return factory.isOpsPaused();
+    }
+
+    function _isInvited(address invitee) private view returns(bool) {
+        return invited[invitee];
     }
 
 }

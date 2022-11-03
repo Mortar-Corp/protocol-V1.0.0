@@ -21,12 +21,13 @@ interface IVaultFactory {
     function initiateVault
     (
         address nftAddress, 
-        uint256 tokenId, 
+        uint256 nftId, 
+        uint256 price,
+        uint256 supply,
         string memory name, 
         string memory symbol, 
-        uint256 askPrice, 
         address safe
-    ) external payable returns(address, uint256);
+    ) external returns(address, uint256);
 
     function isOpsPaused() external view returns(bool);
 

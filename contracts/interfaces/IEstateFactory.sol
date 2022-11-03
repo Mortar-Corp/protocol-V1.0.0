@@ -3,11 +3,8 @@ pragma solidity >=0.8.0 <0.9.0;
 
 
 interface IEstateFactory {
-
-    //emitted when factory contract is deployed by `deployer` & `estateBeacon`
     event FactoryInit(address indexed upgrader, address estateBeacon);
     
-    //emitted when `estateOwner` & `estateManager` is assigned by `deployer` to initiate `proxyAddress` that has `proxyId`
     event ProxyDeployed
     (
         uint256 proxyId, 
@@ -16,38 +13,31 @@ interface IEstateFactory {
         address indexed initiator 
     );
     
-    /**
-     *@notice  mortar address is the deployer address which has upgradability & super 
-     * managerial features that includes assigning `estateManager` & `estateOwner`
-     * pausing & unpausing operations.
-     *
-     * emits `FactoryInit` event
-     */
+
     function __EstateFactory_init(address upgrader) external;
 
 
-    function tokenizeEstate(address safeAddress, uint256 taxId) external payable returns(address);
+    function tokenizeEstate(address safeAddress, uint256 taxId) external returns(address);
 
-    //gets proxy contract address `estateOwner` address
-    function allSafeEstates(address safeAddress) external view returns(address[] memory);
 
-    //gets an array of all proxy addresses
+    function allOwnerEstates(address owner) external view returns(address[] memory);
+
+    function totalOwnerEstates(address owner) external view returns(uint256);
+
+    function ownerEstateAddr(address owner, uint256 id) external view returns(address);
+
+    function contractAddr(uint256 taxId) external view returns(address);
+
     function allProxies() external view returns(address[] memory);
 
-    // //gets an array of all proxy addresses managed by `manager` address
-    // function proxiesManager(address manager) external view returns(address[] memory);
-
-    //gets total count of proxies
     function proxiesCount() external view returns(uint256);
 
-    //gets proxy address by it's `num`
     function proxyAddrById(uint256 num) external view returns(address);
 
     function modifyProxyURI(address estateContract, uint256 tokenId, string memory newURI) external returns(bool);
 
     function modifyProxyMetadata(address estateContract, uint256 tokenId, string memory newName, string memory newSymbol) external returns(bool);
 
-    //only mortar address can pause & unpause 
     function emergencyPause() external;
 
     function emergencyUnpause() external;

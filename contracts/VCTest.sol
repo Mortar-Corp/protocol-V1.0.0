@@ -43,7 +43,7 @@ contract VCTest is
 
 
     uint256[5] private availableIds;
-    string private constant _uri = "www.sahe.com";
+    string private constant _uri = "http://bafybeihqp5dcnhnspwhs3fqh4tmzweu6nw33iukx6i4sqnv4vwed3zuwc4.ipfs.localhost:8080/{id}.json";
     string private constant _name = "VCToken";
     string private constant _symbol = "VCT";
 
@@ -123,6 +123,7 @@ contract VCTest is
         require(balanceOf(to, id) == 0, "VCToken: balance should be 0 before minting");
         if(id == 1) {
             require(AddressUpgradeable.isContract(to), "VCT: mint business to safe");
+            require(isVerified(msg.sender), "VCToken: minter of business token isnot verified");
         } else{
             require(to == msg.sender, "VCT: mint to address only");
         }
@@ -198,7 +199,8 @@ contract VCTest is
         require(block.timestamp < end, "VCToken: expired deadline");
         require(balanceOf(to, id) == 0, "VCToken: balance should be 0 before minting");
         if(id == 1) {
-            require(AddressUpgradeable.isContract(to), "VCT: mint business to safe");
+            require(AddressUpgradeable.isContract(to), "VCToken: mint business to safe");
+            require(isVerified(msg.sender), "VCToken: minter of business token isnot verified");
         } else{
             require(to == msg.sender, "VCT: mint to address only");
         }
@@ -410,7 +412,7 @@ contract VCTest is
     }
 
     /**
-     * only `ADMIN_ROLE` is allowed to upgrade contract to next version
+     * only `Upgrader` is allowed to upgrade contract to next version
      * `newImplementation` should be a contract and non zero address
      */
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyRole(UPGRADER_ROLE) {

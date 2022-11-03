@@ -48,7 +48,7 @@ interface IERC721Modified is IERC165Upgradeable {
         string memory tokenName, 
         string memory tokenSymbol, 
         string memory tokenURI
-    ) external payable returns(uint256);
+    ) external returns(uint256);
 
     function version() external pure returns(string memory);
     

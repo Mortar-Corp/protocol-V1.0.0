@@ -10,25 +10,17 @@ import "./access/OwnableUpgradeable.sol";
 import "./interfaces/IVaultFactory.sol";
 import "./interfaces/IERC1155Modified.sol";
 
-/**
- *@title VaultFactory
- *@author Sasha Flores
- *@dev only VCT holders are allowed to list their nft.
- * any nft is allowed to
- 
- */
 contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
 
-    address private vaultBeacon; 
-    uint256 private vaultId;   
+    address private vaultBeacon; //
+    uint256 private vaultId;   //
     address private mrtr;
 
-    mapping(uint256 => address) private vaults; 
+    mapping(uint256 => address) private vaults; //
     mapping(address => address) private assetVault;
 
-    uint256 private constant LISTING_FEE = 1 * 10**9;
-    
-    address private constant VCT = 0xb27A31f1b0AF2946B7F582768f03239b1eC07c2c;
+
+    address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
 
     function __VaultFactory_init() public virtual override initializer {
         __Pausable_init();
@@ -42,27 +34,22 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
     function initiateVault
     (
         address nftAddress, 
-        uint256 tokenId, 
-        string memory name, 
-        string memory symbol, 
-        uint256 askPrice, 
+        uint256 nftId, 
+        uint256 price,
+        uint256 supply,
+        string memory name_, 
+        string memory symbol_, 
         address safe
-    ) public payable
-    virtual 
-    override 
-    whenNotPaused 
-    returns(address, uint256) {
-        require(askPrice > 0, "VaultFactory: price is zero");
+    ) public virtual override whenNotPaused returns(address, uint256) {
+        require(price > 0 && supply > 0, "VaultFactory: price or supply is zero");
         require(
             AddressUpgradeable.isContract(safe) && safe != address(0), 
             "VaultFactory: safe is not contract or zero address"
         );
         require(
-            IERC1155Modified(VCT).isVerified(safe) || 
             IERC1155Modified(VCT).isVerified(msg.sender),
             "VaultFactory: verified holders only"
         );
-        require(msg.value >= LISTING_FEE, "VaultFactory: listing fee is 1 BRCK");
         
         BeaconProxy proxy = new BeaconProxy
         (
@@ -71,10 +58,11 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
             (
                 Vault(address(0)).__Vault_init.selector, 
                 nftAddress,
-                tokenId, 
-                name, 
-                symbol, 
-                askPrice, 
+                nftId, 
+                price, 
+                supply,
+                name_,
+                symbol_, 
                 safe, 
                 msg.sender
             )
@@ -88,7 +76,7 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
         assetVault[nftAddress] = vault;
 
         emit ProxyDeployed(vault, vaultId);
-        emit AssetListed(nftAddress, tokenId, safe, msg.sender, askPrice);
+        emit AssetListed(nftAddress, nftId, safe, msg.sender, price);
         return (vault, vaultId - 1);
     }
 

@@ -20,8 +20,8 @@ contract ERC20Upgradeable is Initializable, ContextUpgradeable, IERC20Upgradeabl
     uint256 private _totalSupply;
     uint8 private constant _decimals = 6;
 
-    string internal _name;
-    string internal _symbol;
+    string private _name;
+    string private _symbol;
 
 
     function __ERC20_init(string memory name_, string memory symbol_) internal onlyInitializing {
@@ -53,6 +53,7 @@ contract ERC20Upgradeable is Initializable, ContextUpgradeable, IERC20Upgradeabl
     function decimals() public view virtual override returns (uint8) {
         return _decimals;
     }
+
 
     /**
      * @dev See {IERC20-totalSupply}.
@@ -173,6 +174,11 @@ contract ERC20Upgradeable is Initializable, ContextUpgradeable, IERC20Upgradeabl
         }
 
         return true;
+    }
+
+    function _modifyMetadata(string memory name_, string memory symbol_) internal virtual {
+        _name = name_;
+        _symbol = symbol_;
     }
 
     /**
