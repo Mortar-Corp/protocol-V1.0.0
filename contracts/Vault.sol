@@ -35,7 +35,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     // fraction owners
     address[] buyers;
     uint256 private buyersCount;
-    uint256 minBuy;
+    uint256 threshold;
 
     // contracts storage
     IVaultFactory private factory;
@@ -106,25 +106,26 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     }
 
     //syndicate is no of shares of `totalSupply` minted directly to seller safe 
-    //max syndication 40% of total supply
     //minToBuy: is min shares to purchase - not price but shares
     function openSale(uint256 syndicate, uint256 minToBuy) public virtual override onlySeller {
         _ifNotPaused;
         require(saleState == Sale.inactive, "Vault: sale is active or closed");
         require(IERC721Modified(_nftAddress).ownerOf(_nftId) == address(this), "Vault: token not recieved");
+        require(minToBuy > 0, "Vault: min to buy is zero");
         
-        uint256 max = _supply * 2 / 5;
-        require(syndicate < max, "Vault: max syndication less than 40% of shares");
-        
-        uint256 sell = _supply - syndicate;        
-        minBuy = minToBuy;
-        require(minToBuy > 0 && minToBuy < sell, "Vault: min purchase more than 0 less than available");
-        
-        _mint(nftSafe, syndicate);
-        _mint(address(this), sell);
-        
+        if(syndicate == 0) {
+            _mint(address(this), _supply);
+            require(minToBuy < _supply, "Vault: min to buy exceeds supply");
+        } else {
+            uint256 sell = _supply - syndicate;
+            _mint(nftSafe, syndicate);
+            _mint(address(this), sell);
+            require(minToBuy < sell, "Vault: min to buy exceeds shares to sell");
+        }
+    
+        threshold = minToBuy;
         saleState = Sale.active;
-        emit SaleInit(block.timestamp, syndicate, sell, minToBuy);
+        emit SaleInit(block.timestamp, syndicate, _supply - syndicate, minToBuy);
     }
 
     function TokenId() external view virtual override returns(uint256) {
@@ -152,7 +153,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
             "EstateFactory: verified holders only"
         );
         require(_isInvited(msg.sender), "Vault: missing invitation");
-        require(shares <= availFractions() && shares >= minBuy, "Vault: zero amount or exceeds available fractions");
+        require(shares <= availFractions() && shares >= threshold, "Vault: zero amount or exceeds available fractions");
 
         uint256 sharesPrice = shares * sharePrice;
         if(sharesPrice <= AND.allowance(safe, address(this))) {
