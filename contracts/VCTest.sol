@@ -39,7 +39,7 @@ contract VCTest is
 {
     using AddressUpgradeable for address;
     using CountersUpgradeable for CountersUpgradeable.Counter;
-    CountersUpgradeable.Counter private clientsCount;
+
 
 
     uint256[5] private availableIds;
@@ -51,9 +51,8 @@ contract VCTest is
     uint256 private start;
     uint256 private constant EXPIRY = 7 days;
     mapping(address => CountersUpgradeable.Counter) private nonces;
-    mapping(uint256 => address) private clientIds;
     mapping(address => bool) internal minted;
-    mapping(address => uint256) internal _holderToken;
+    mapping(address => uint256) internal _authToken;
     mapping(uint256 => uint256) private _totalSupply;
     mapping(uint256 => mapping(address => uint256)) private _balances;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
@@ -76,7 +75,7 @@ contract VCTest is
 
     
 
-    function __VCTest_init(address upgrader) public initializer {
+    function __VCToken_init(address upgrader) public virtual override initializer {
         __AccessControl_init();
         __ERC165_init();
         __EIP712_init("VCToken", "1.0.0");
@@ -117,18 +116,14 @@ contract VCTest is
         _grantRole(UPGRADER_ROLE, upgrader);
     }
     
-    function mintTest(address to, uint256 id) public virtual onlyRole(MINTER_ROLE) {
+    function mintTest(address to, uint256 id) public virtual onlyRole(MINTER_ROLE) returns(bool) {
         uint256 end = start + EXPIRY;
         require(block.timestamp < end, "VCToken: expired deadline");
         require(balanceOf(to, id) == 0, "VCToken: balance should be 0 before minting");
-        if(id == 1) {
-            require(AddressUpgradeable.isContract(to), "VCT: mint business to safe");
-            require(isVerified(msg.sender), "VCToken: minter of business token isnot verified");
-        } else{
-            require(to == msg.sender, "VCT: mint to address only");
-        }
+        require(_authToken[to] == id, "VCToken: wrong token id or address");
         _mint(to, id, 1, "");
         minted[to] = true;
+        return minted[to];
     }
 
     function burnTest(address from, uint256 id) public virtual onlyRole(MINTER_ROLE) {
@@ -136,17 +131,12 @@ contract VCTest is
         minted[from] = false;
     }
 
-    // returns user address by on-chain `clientId`
-    function getClientAddress(uint256 clientId) public view virtual override returns(address) {
-        return clientIds[clientId];
-    }
-
     /**
      * returns `tokenId` of each `holder` address
      * in case of business token inquiry, use safe address
      */
-    function holderTokenId(address holder) public view virtual override returns(uint256) {
-        return _holderToken[holder];
+    function authToken(address account) public view virtual override returns(uint256) {
+        return _authToken[account];
     }
 
     function isVerified(address holder) public view virtual override returns(bool) {
@@ -170,18 +160,18 @@ contract VCTest is
      * `ADMIN_ROLE` grants `MINTER_ROLE` to `signer` to mint & burn token 
      * starts the timer of 7 days to mint once `setMinter` is provoked
      */
-    function setMinter(address signer) public virtual onlyRole(ADMIN_ROLE) whenNotPaused returns(uint256) {
-        require(signer != address(0), "VCToken: non zero address only");
-        clientsCount.increment();
-        uint256 clientId = clientsCount.current();
-        clientIds[clientId] = signer;
+    function setMinter(address verifiable, uint256 tokenId) public virtual override onlyRole(ADMIN_ROLE) whenNotPaused returns(uint256) {
+        require(verifiable != address(0), "VCToken: non zero address only");
+        require(tokenId <= availableIds.length, "VCToken: requested id unavailable");
+        _authToken[verifiable] = tokenId;
         start = block.timestamp;
-        _grantRole(MINTER_ROLE, signer);
-        return clientId;
+        _grantRole(MINTER_ROLE, verifiable);
+        emit VerifiableSet(verifiable, tokenId);
+        return tokenId;
     }
 
     // returns `nonce` of `signer`
-    function getNonce(address signer) public view returns(uint256) {
+    function getNonce(address signer) public view virtual override returns(uint256) {
         return nonces[signer].current();
     }
 
@@ -194,23 +184,19 @@ contract VCTest is
      * - mint before deadline
      * see {_beforeTokenTransfer}
      */
-    function mint(address to, uint256 id, bytes calldata signature) public virtual override {
+    function mint(address to, uint256 id, bytes calldata signature) public virtual override returns(bool) {
         uint256 end = start + EXPIRY;
         require(block.timestamp < end, "VCToken: expired deadline");
         require(balanceOf(to, id) == 0, "VCToken: balance should be 0 before minting");
-        if(id == 1) {
-            require(AddressUpgradeable.isContract(to), "VCToken: mint business to safe");
-            require(isVerified(msg.sender), "VCToken: minter of business token isnot verified");
-        } else{
-            require(to == msg.sender, "VCT: mint to address only");
-        }
-        
+        require(_authToken[to] == id, "VCToken: wrong token id or address");
+
         address signer = msg.sender;
         bytes32 txHash = getMintHash(to, id, _incrementNonce(signer));
         require(verifySignature(signer, txHash, signature), "VCToken: invalid signature");
 
         _mint(to, id, 1, "");
         minted[to] = true;
+        return minted[to];
     }
 
     /**
@@ -221,9 +207,11 @@ contract VCTest is
     function burn(address from, uint256 id, bytes calldata signature) public virtual override {
         address signer = msg.sender;
         bytes32 txHash = getBurnHash(from, id, _incrementNonce(signer));
-        require(verifySignature(signer, txHash, signature));
+        require(verifySignature(signer, txHash, signature), "VCToken: invalid signature");
 
         _burn(from, id, 1);
+        _revokeRole(MINTER_ROLE, msg.sender);
+        minted[from] = false;
     }
 
     
@@ -321,9 +309,11 @@ contract VCTest is
         address operator = _msgSender();
         require(id <= availableIds.length, "VCToken: requested id unavailable");
         if(id == 1) {
-            require(AddressUpgradeable.isContract(to), "VCToken: mint business token to safe only");
+            require(AddressUpgradeable.isContract(to), "VCToken: mint business to safe");
+            require(isVerified(msg.sender), "VCToken: minter of business token isnot verified");
+        } else{
+            require(to == msg.sender, "VCT: mint to address only");
         }
-        
         _beforeTokenTransfer(operator, address(0), to, id, amount, data);
         _doSafeTransferAcceptanceCheck(operator, address(0), to, id, amount, data);
     }
@@ -357,12 +347,13 @@ contract VCTest is
         bytes memory data
     ) internal virtual {
         require(!paused(), "VCToken: operations paused");
+        //mint
         if(from == address(0) && to != address(0)) {
             _balances[id][to] += amount;
             _totalSupply[id] += amount;
-            _holderToken[to] = id;
             emit Transfer(operator, address(0), to, id, amount);
         }
+        //burn
         if(from !=address(0) && to == address(0)) {
             uint256 supply = _totalSupply[id];
             require(supply >= amount, "VCToken: burn amount exceeds total supply");
@@ -372,10 +363,11 @@ contract VCTest is
            require(fromBal >= amount, "VCToken: burn amount exceeds balance");
            _balances[id][from] = fromBal - amount;
 
-           delete _holderToken[from];
+           delete _authToken[from];
 
            emit Transfer(operator, from, address(0), id, amount);
         }
+        //transfer
         if(from != address(0) && to != address(0)) { 
             if(id == 1) {
                 uint256 fromBal = _balances[id][from];
@@ -412,7 +404,7 @@ contract VCTest is
     }
 
     /**
-     * only `Upgrader` is allowed to upgrade contract to next version
+     * only `ADMIN_ROLE` is allowed to upgrade contract to next version
      * `newImplementation` should be a contract and non zero address
      */
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyRole(UPGRADER_ROLE) {

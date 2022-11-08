@@ -104,8 +104,7 @@ contract Estate is
 
    //change `name` & `symbol` of `tokenId`
    //accessible by `estateManger` only
-   function modifyTokenMetadata(uint256 tokenId, string memory name, string memory symbol) public virtual override
-   {
+   function modifyTokenMetadata(uint256 tokenId, string memory name, string memory symbol) public virtual override{
       _notPaused();
       require(_msgSender() == address(factory), "Estate: unauthorized call");
       Entity storage entity = estates[tokenId][_owner];

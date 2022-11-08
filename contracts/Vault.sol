@@ -22,7 +22,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     address private _nftAddress;
     uint256 private _nftId;
     uint256 private sharePrice;
-    uint256 private _supply;
+    uint256 public _supply;
     address private seller;
     address private nftSafe;
    
@@ -40,7 +40,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     // contracts storage
     IVaultFactory private factory;
     IERC20Upgradeable private AND;
-    address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
+    address private constant VCT = 0x5e17b14ADd6c386305A32928F985b29bbA34Eff5;
                             
     
     modifier onlySeller() {
@@ -68,7 +68,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
 
         sharePrice = price / supply;
 
-        AND = IERC20Upgradeable(0xaE036c65C649172b43ef7156b009c6221B596B8b);
+        AND = IERC20Upgradeable(0xd9145CCE52D386f254917e481eB44e9943F39138);
         bool success = AND.approve(address(this), (sharePrice * supply));
         require(success, "Vault: unsuccessful approval");
         
@@ -76,12 +76,12 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         seller = nftOwner;
         _nftAddress = nftAddress;
         _nftId = nftId;
+        _supply = supply;
         saleState = Sale.inactive;     
     }
 
-    function changeMetadata(string memory name, string memory symbol) public virtual override {
+    function changeMetadata(string memory name, string memory symbol) public virtual override onlyOwner {
         _ifNotPaused;
-        require(msg.sender == owner(), "Vault: only mortar is authorized");
         require(saleState != Sale.active,"Vault: sale is active");
         _modifyMetadata(name, symbol);
         emit MetadataChanged(name, symbol);
@@ -94,7 +94,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     // seller invite investors which can buy shares when `openSale`
     // non zero addresses , no duplicated addresses
     function invite(address[] memory _invitees) public virtual override onlySeller {
-        require(saleState == Sale.inactive, "Vault: sale is active");
+        require(saleState != Sale.ended, "Vault: sale ended");
         for(uint256 i = 0; i < _invitees.length; i ++) {
             address invitee = _invitees[i];
             require(invitee != address(0), "Vault: zero address");
@@ -105,27 +105,27 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         emit InvitationSend(_invitees, count);
     }
 
-    //syndicate is no of shares of `totalSupply` minted directly to seller safe 
+    //syndicate is % of total supply to sell set in %
     //minToBuy: is min shares to purchase - not price but shares
-    function openSale(uint256 syndicate, uint256 minToBuy) public virtual override onlySeller {
+    function openSale(uint8 syndicate, uint256 minToBuy) public virtual override onlySeller {
         _ifNotPaused;
         require(saleState == Sale.inactive, "Vault: sale is active or closed");
         require(IERC721Modified(_nftAddress).ownerOf(_nftId) == address(this), "Vault: token not recieved");
-        require(minToBuy > 0, "Vault: min to buy is zero");
         
-        if(syndicate == 0) {
+        if(syndicate == 100) {
             _mint(address(this), _supply);
             require(minToBuy < _supply, "Vault: min to buy exceeds supply");
         } else {
-            uint256 sell = _supply - syndicate;
-            _mint(nftSafe, syndicate);
+            uint256 sell = _supply * syndicate / 100;
+            uint256 keep = _supply - sell;
+            _mint(nftSafe, keep);
             _mint(address(this), sell);
             require(minToBuy < sell, "Vault: min to buy exceeds shares to sell");
         }
     
         threshold = minToBuy;
         saleState = Sale.active;
-        emit SaleInit(block.timestamp, syndicate, _supply - syndicate, minToBuy);
+        emit SaleInit(syndicate, minToBuy);
     }
 
     function TokenId() external view virtual override returns(uint256) {
@@ -136,7 +136,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         return _nftAddress;
     }
 
-    // `shares` equal to or greater than `minToBuy` 
+    // `shares` equal to or greater than `minToBuy` if set
     // & less than or equaol to `availFractions`
     // to approve `AND` for shares * sharePrice = allowance.
     // accessible by invitation & to VCT holders only
@@ -177,6 +177,15 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         emit SoldFractions(msg.sender, shares);
     }
 
+    function unwrapNft(address to) public virtual override onlyOwner {
+        require(to != address(0), "Vault: address zero");
+        require(balanceOf(address(this)) >= totalSupply(), "Vault: fractions missing");
+        IERC721Modified(_nftAddress).transferFrom(address(this), to, _nftId);
+        _burn(address(this), totalSupply());
+        _checkOnERC721Received(address(this), to, _nftId, "");
+        emit NftUnwrapped(to, _nftId);
+    }
+
     function pricePerShare() external view virtual override returns(uint256) {
         return sharePrice;
     }
@@ -211,4 +220,21 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         return invited[invitee];
     }
 
+   function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory _data) private returns (bool) {
+      if (to.isContract()) {
+         try IERC721ReceiverUpgradeable(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
+            return retval == IERC721ReceiverUpgradeable.onERC721Received.selector;
+         } catch (bytes memory reason) {
+            if (reason.length == 0) {
+               revert("ERC721: transfer to non ERC721Receiver implementer");
+            } else {
+               assembly {
+                  revert(add(32, reason), mload(reason))
+               }
+            }
+         }
+      } else {
+         return true;
+      }
+   }
 }

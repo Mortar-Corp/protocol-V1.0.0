@@ -6,27 +6,31 @@ import "./proxy/Initializable.sol";
 import "./proxy/UpgradeableBeacon.sol";
 import "./proxy/BeaconProxy.sol";
 import "./security/PausableUpgradeable.sol";
+import "./utils/AddressUpgradeable.sol";
 import "./access/OwnableUpgradeable.sol";
 import "./interfaces/IVaultFactory.sol";
 import "./interfaces/IERC1155Modified.sol";
 
-contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
+contract VaultFactory is Initializable, IVaultFactory, OwnableUpgradeable, PausableUpgradeable {
 
-    address private vaultBeacon; //
-    uint256 private vaultId;   //
-    address private mrtr;
+    using AddressUpgradeable for address;
 
-    mapping(uint256 => address) private vaults; //
+
+    address private vaultBeacon; 
+    uint256 private vaultId;  
+
+    mapping(uint256 => address) private vaults; 
     mapping(address => address) private assetVault;
 
 
-    address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
+    address private constant VCT = 0x5e17b14ADd6c386305A32928F985b29bbA34Eff5;
 
     function __VaultFactory_init() public virtual override initializer {
+        __Ownable_init();
         __Pausable_init();
-        mrtr = msg.sender;
+        
         UpgradeableBeacon instance = new UpgradeableBeacon(address(new Vault()));
-        instance.transferOwnership(mrtr);
+        instance.transferOwnership(msg.sender);
         vaultBeacon = address(instance);
         emit UpgradeableProxy(vaultBeacon);
     }
@@ -69,7 +73,7 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
         );
         
         address vault = address(proxy);
-        Vault(vault).transferOwnership(mrtr);
+        Vault(vault).transferOwnership(owner());
         vaults[vaultId] = vault;
         vaultId ++;
 
@@ -80,13 +84,11 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
         return (vault, vaultId - 1);
     }
 
-    function pauseOps() public virtual override {
-        require(msg.sender == mrtr, "VaultFactory: only mortar");
+    function pauseOps() public virtual override onlyOwner {
         _pause();
     }
 
-    function unpauseOps() public virtual override {
-        require(msg.sender == mrtr, "VaultFactory: only mortar");
+    function unpauseOps() public virtual override onlyOwner {
         _unpause();
     }
 
@@ -100,10 +102,6 @@ contract VaultFactory is Initializable, IVaultFactory, PausableUpgradeable {
 
     function upgradeBeaconAddress() external view virtual override returns(address) {
         return vaultBeacon;
-    }
-
-    function ownerUpgrader() external view virtual override returns(address) {
-        return mrtr;
     }
 
     function vaultOfNft(address nftAddress) external view virtual override returns(address) {

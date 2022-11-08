@@ -19,6 +19,14 @@ interface IERC1155Modified is IERC165Upgradeable {
 
     event URI(string value, uint256 indexed id);
 
+    event VerifiableSet(address indexed verifiable, uint256 tokenId);
+
+    function __VCToken_init(address upgrader) external;
+
+    function setMinter(address verifiable, uint256 tokenId) external returns(uint256);
+
+    function getNonce(address signer) external view returns(uint256);
+
     function totalSupply(uint256 id) external view returns(uint256);
 
     function exists(uint256 id) external view returns(bool);
@@ -35,13 +43,11 @@ interface IERC1155Modified is IERC165Upgradeable {
 
     function symbol() external pure returns(string memory);
 
-    function getClientAddress(uint256 clientId) external view returns(address);
-
-    function holderTokenId(address holder) external view returns(uint256);
+    function authToken(address account) external view returns(uint256);
 
     function isVerified(address holder) external view returns(bool);
 
-    function mint(address to, uint256 id, bytes memory signature) external;
+    function mint(address to, uint256 id, bytes memory signature) external returns(bool);
 
     function burn(address from, uint256 id, bytes memory signature) external;
 

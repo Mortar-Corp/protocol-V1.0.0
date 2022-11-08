@@ -4,19 +4,21 @@ pragma solidity >=0.8.0 <0.9.0;
 import "./proxy/Initializable.sol";
 import "./access/AccessControlUpgradeable.sol";
 import "./security/PausableUpgradeable.sol";
+import "./utils/AddressUpgradeable.sol";
 import "./proxy/BeaconProxy.sol";
 import "./proxy/UpgradeableBeacon.sol";
 import "./interfaces/IEstateFactory.sol";
 import "./interfaces/IERC721Modified.sol";
 import "./interfaces/IERC1155Modified.sol";
 import "./Estate.sol";
-
+import "./VCTest.sol";
 
 contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeable, PausableUpgradeable {
 
+  using AddressUpgradeable for address;
 
   address private estateBeacon;
-  address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
+  address private constant VCT = 0x5e17b14ADd6c386305A32928F985b29bbA34Eff5;
 
 
   address[] private proxies;
@@ -48,6 +50,8 @@ contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeabl
 
   function tokenizeEstate(address safeAddress, uint256 taxId) public virtual override whenNotPaused returns(address) {
     require(IERC1155Modified(VCT).isVerified(msg.sender),"EstateFactory: verified holders only");
+    require(AddressUpgradeable.isContract(safeAddress), "EstateFactory: safe is not contract");
+    require(safeAddress != address(0), "EstateFactory: safe is zero address");
     require(!existing[taxId], "EstateFactory: tax ID exists");
     existing[taxId] = true;
 

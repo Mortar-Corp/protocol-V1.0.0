@@ -39,7 +39,5 @@ interface IVaultFactory {
 
     function upgradeBeaconAddress() external returns(address);
 
-    function ownerUpgrader() external view returns(address);
-
     function vaultOfNft(address nftAddress) external view returns(address);
 }

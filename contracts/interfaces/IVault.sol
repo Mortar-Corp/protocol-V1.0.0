@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 interface IVault {
 
 
-    event SaleInit(uint256 at, uint256 syndicated, uint256 sell, uint256 minBuy);
+    event SaleInit(uint256 syndicated, uint256 minBuy);
 
     event SoldFractions(address indexed buyer, uint256 value);
 
@@ -12,7 +12,8 @@ interface IVault {
 
     event InvitationSend(address[] invitees, uint256 count);
 
-    event SaleClaimed(uint256 at, uint256 payment);
+    event NftUnwrapped(address indexed sendTo, uint256 nftId);
+
 
     function __Vault_init
     (
@@ -30,7 +31,7 @@ interface IVault {
 
     function invite(address[] memory _invitees) external;
 
-    function openSale(uint256 syndicate, uint256 minToBuy) external;
+    function openSale(uint8 syndicate, uint256 minToBuy) external;
 
     function TokenId() external view returns(uint256);
 
@@ -39,6 +40,8 @@ interface IVault {
     function pricePerShare() external view returns(uint256);
 
     function buyFractions(address safe, uint256 shares) external;
+
+    function unwrapNft(address to) external;
 
     function allBuyers() external view returns(address[] memory);
 
