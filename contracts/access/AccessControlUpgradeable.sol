@@ -78,7 +78,7 @@ abstract contract AccessControlUpgradeable is Initializable, ContextUpgradeable,
                 string(
                     abi.encodePacked(
                         "AccessControl: account ",
-                        StringsUpgradeable.toHexString(account),
+                        //StringsUpgradeable.toHexString(account),
                         " is missing role ",
                         StringsUpgradeable.toHexString(uint256(role), 32)
                     )

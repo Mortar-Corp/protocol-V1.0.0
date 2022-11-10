@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0 <0.9.0;
 
-interface IVaultFactory {
+interface IEstateVaultFactory {
 
     event UpgradeableProxy(address indexed vaultBeacon);
 
@@ -16,7 +16,7 @@ interface IVaultFactory {
         uint256 price
     );
 
-    function __VaultFactory_init()external;
+    function __EstateVaultFactory_init()external;
 
     function initiateVault
     (

@@ -5,15 +5,15 @@ import "./token/ERC721HolderUpgradeable.sol";
 import "./interfaces/IERC721Modified.sol";
 import "./token/ERC20Upgradeable.sol";
 import "./proxy/Initializable.sol";
-import "./interfaces/IVaultFactory.sol";
+import "./interfaces/IEstateVaultFactory.sol";
 import "./access/OwnableUpgradeable.sol";
 import "./token/SafeERC20Upgradeable.sol";
 import "./interfaces/IERC20Upgradeable.sol";
 import "./utils/AddressUpgradeable.sol";
 import "./interfaces/IERC1155Modified.sol";
-import "./interfaces/IVault.sol";
+import "./interfaces/IEstateVault.sol";
 
-contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgradeable, ERC20Upgradeable {
+contract EstateVault is Initializable, OwnableUpgradeable, IEstateVault, ERC721HolderUpgradeable, ERC20Upgradeable {
 
     using AddressUpgradeable for address;
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -38,7 +38,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
     uint256 threshold;
 
     // contracts storage
-    IVaultFactory private factory;
+    IEstateVaultFactory private factory;
     IERC20Upgradeable private AND;
     address private constant VCT = 0x5e17b14ADd6c386305A32928F985b29bbA34Eff5;
                             
@@ -48,7 +48,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         _;
     }
 
-    function __Vault_init
+    function __EstateVault_init
     (
         address nftAddress, 
         uint256 nftId, 
@@ -63,7 +63,7 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         __ERC721Holder_init();
         __Ownable_init();
 
-        factory = IVaultFactory(msg.sender);
+        factory = IEstateVaultFactory(msg.sender);
         require(msg.sender != address(0), "Vault: factory is zero address");
 
         sharePrice = price / supply;
@@ -105,18 +105,18 @@ contract Vault is Initializable, OwnableUpgradeable, IVault, ERC721HolderUpgrade
         emit InvitationSend(_invitees, count);
     }
 
-    //syndicate is % of total supply to sell set in %
+    //syndicate is number of shares to sell
     //minToBuy: is min shares to purchase - not price but shares
-    function openSale(uint8 syndicate, uint256 minToBuy) public virtual override onlySeller {
+    function openSale(uint256 syndicate, uint256 minToBuy) public virtual override onlySeller {
         _ifNotPaused;
         require(saleState == Sale.inactive, "Vault: sale is active or closed");
         require(IERC721Modified(_nftAddress).ownerOf(_nftId) == address(this), "Vault: token not recieved");
         
-        if(syndicate == 100) {
+        if(syndicate == _supply) {
             _mint(address(this), _supply);
             require(minToBuy < _supply, "Vault: min to buy exceeds supply");
         } else {
-            uint256 sell = _supply * syndicate / 100;
+            uint256 sell = _supply * syndicate;
             uint256 keep = _supply - sell;
             _mint(nftSafe, keep);
             _mint(address(this), sell);

@@ -1,16 +1,16 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import "./Vault.sol";
+import "./EstateVault.sol";
 import "./proxy/Initializable.sol";
 import "./proxy/UpgradeableBeacon.sol";
 import "./proxy/BeaconProxy.sol";
 import "./security/PausableUpgradeable.sol";
 import "./access/OwnableUpgradeable.sol";
-import "./interfaces/IVaultFactory.sol";
+import "./interfaces/IEstateVaultFactory.sol";
 import "./interfaces/IERC1155Modified.sol";
 
-contract VaultFactory is Initializable, IVaultFactory, OwnableUpgradeable, PausableUpgradeable {
+contract VaultFactory is Initializable, IEstateVaultFactory, OwnableUpgradeable, PausableUpgradeable {
 
     address private vaultBeacon; 
     uint256 private vaultId;  
@@ -21,11 +21,11 @@ contract VaultFactory is Initializable, IVaultFactory, OwnableUpgradeable, Pausa
 
     address private constant VCT = 0x5e17b14ADd6c386305A32928F985b29bbA34Eff5;
 
-    function __VaultFactory_init() public virtual override initializer {
+    function __EstateVaultFactory_init() public virtual override initializer {
         __Ownable_init();
         __Pausable_init();
         
-        UpgradeableBeacon instance = new UpgradeableBeacon(address(new Vault()));
+        UpgradeableBeacon instance = new UpgradeableBeacon(address(new EstateVault()));
         instance.transferOwnership(msg.sender);
         vaultBeacon = address(instance);
         emit UpgradeableProxy(vaultBeacon);
@@ -56,7 +56,7 @@ contract VaultFactory is Initializable, IVaultFactory, OwnableUpgradeable, Pausa
             vaultBeacon, 
             abi.encodeWithSelector
             (
-                Vault(address(0)).__Vault_init.selector, 
+                EstateVault(address(0)).__EstateVault_init.selector, 
                 nftAddress,
                 nftId, 
                 price, 
@@ -69,7 +69,7 @@ contract VaultFactory is Initializable, IVaultFactory, OwnableUpgradeable, Pausa
         );
         
         address vault = address(proxy);
-        Vault(vault).transferOwnership(owner());
+        EstateVault(vault).transferOwnership(owner());
         vaults[vaultId] = vault;
         vaultId ++;
 

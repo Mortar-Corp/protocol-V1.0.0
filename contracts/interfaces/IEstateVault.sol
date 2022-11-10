@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0 <0.9.0;
 
-interface IVault {
+interface IEstateVault {
 
 
     event SaleInit(uint256 syndicated, uint256 minBuy);
@@ -15,7 +15,7 @@ interface IVault {
     event NftUnwrapped(address indexed sendTo, uint256 nftId);
 
 
-    function __Vault_init
+    function __EstateVault_init
     (
         address nftAddress, 
         uint256 nftId, 
@@ -31,7 +31,7 @@ interface IVault {
 
     function invite(address[] memory _invitees) external;
 
-    function openSale(uint8 syndicate, uint256 minToBuy) external;
+    function openSale(uint256 syndicate, uint256 minToBuy) external;
 
     function TokenId() external view returns(uint256);
 
