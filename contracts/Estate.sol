@@ -115,11 +115,22 @@ contract Estate is
       emit MetadataChanged(tokenId, name, symbol);
    }
 
-   //returns `name` & `symbol` of `tokenId`
-   function tokenMetadata(uint256 tokenId) public view virtual override returns(string memory, string memory, string memory) {
+   function name(uint256 tokenId) public view virtual override returns(string memory) {
       _requireMinting(tokenId);
       require(_exists(tokenId), "Estate: token donot exist"); 
-      return (estates[tokenId][_owner].tokenName, estates[tokenId][_owner].tokenSymbol, _tokenURIs[tokenId]);
+      return estates[tokenId][_owner].tokenName;
+   }
+
+   function symbol(uint256 tokenId) public view virtual override returns(string memory) {
+      _requireMinting(tokenId);
+      require(_exists(tokenId), "Estate: token donot exist");
+      return estates[tokenId][_owner].tokenSymbol;
+   }
+
+   function tokenUri(uint256 tokenId) public view virtual override returns(string memory) {
+      _requireMinting(tokenId);
+      require(_exists(tokenId), "Estate: token donot exist"); 
+      return _tokenURIs[tokenId];
    }
 
 

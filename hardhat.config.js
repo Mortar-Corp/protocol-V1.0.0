@@ -12,6 +12,28 @@ module.exports = {
       accounts: [process.env.MRTR_PRIVATE_KEY],
       timeout: 80000,   
     },
+    goerli: {
+      url: `https://goerli.infura.io/v3/`,
+      chainId: 5,
+      accounts: [],
+    },
+    sepolia: {
+      url: `https://sepolia.infura.io/v3/`,
+      chainId: 11155111,
+      accounts: [],
+    },
+    mumbai: {
+      url: `https://matic-mumbai.chainstacklabs.com`,
+      chainId: 80001,
+      accounts: [],
+    },
+    bnbTest: {
+      url: `https://data-seed-prebsc-1-s1.binance.org:8545`,
+      chainId: 97,
+      confirmations: 25,
+      timeout: 3000,
+      skipDryRun: true
+    }
   },
   gasReporter: {
     coinmarketcap: process.env.COINMARKETCAP,
