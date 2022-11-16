@@ -67,10 +67,10 @@ contract VCToken is
     bytes32 public constant UPGRADER_ROLE = keccak256(abi.encodePacked("UPGRADER_ROLE"));
 
     //keccak256("Mint(address to,uint256 id,uint256 nonce)");
-    bytes32 private constant MINT_TYPEHASH = 0x279388c14884869d3e0da2f2cfb5b39b078ff26698c43946808e11962eb61cad;
+    bytes32 private constant MINT_TYPEHASH = 0xa53b9b633e60c98d0ba266e3e9f0b79181e74b680a5998368333c1f15f06484a;
 
     //keccak256("Burn(address from,uint256 id,uint256 nonce)")
-    bytes32 private constant BURN_TYPEHASH = 0xa53b9b633e60c98d0ba266e3e9f0b79181e74b680a5998368333c1f15f06484a;
+    bytes32 private constant BURN_TYPEHASH = 0x65ec0a3d9b23902e2fe999689a69e8e5ad5bcaab57b8635aec70eaae30d3d87f;
 
     
 
