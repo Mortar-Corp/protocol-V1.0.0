@@ -10,7 +10,7 @@ interface IApmersand {
     event Burn(address executor, address from, uint256 amount);
     event MinterRemoved(address caller, address minter);
 
-    function __Ampersand_init() external;
+    function __Ampersand_init(address verifiedContract) external;
 
     function setAllowance(address minter, uint256 allowance) external;
 

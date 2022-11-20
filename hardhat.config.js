@@ -6,21 +6,22 @@ require("hardhat-gas-reporter");
 
 module.exports = {
   networks: {
-    mrtrTest: {
-      url: `http://35.202.235.89:8545/`,
-      chainId: 1031,
-      accounts: [process.env.MRTR_PRIVATE_KEY],
-      timeout: 80000,   
-    },
-    goerli: {
+    // mrtrTest: {
+    //   url: `http://35.202.235.89:8545/`,
+    //   chainId: 1031,
+    //   accounts: [process.env.MRTR_PRIVATE_KEY],
+    //   timeout: 80000,   
+    // },
+    goerli: { 
       url: `https://goerli.infura.io/v3/`,
       chainId: 5,
       accounts: [],
+      gasPrice: 2500000000,
     },
     sepolia: {
-      url: `https://sepolia.infura.io/v3/`,
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_GOERLI_API_KEY}`,
       chainId: 11155111,
-      accounts: [],
+      accounts: [`0x${process.env.ADMIN_PRIVATE_KEY}`],
     },
     mumbai: {
       url: `https://matic-mumbai.chainstacklabs.com`,
@@ -47,7 +48,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1000,
       }
     }
   },

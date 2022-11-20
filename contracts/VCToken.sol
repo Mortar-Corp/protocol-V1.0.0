@@ -76,7 +76,7 @@ contract VCToken is
 
     function __VCToken_init(address upgrader) public virtual override initializer {
         __AccessControl_init();
-        __ERC165_init();
+        __Pausable_init();
         __EIP712_init("VCToken", "1.0.0");
         __UUPSUpgradeable_init();
 

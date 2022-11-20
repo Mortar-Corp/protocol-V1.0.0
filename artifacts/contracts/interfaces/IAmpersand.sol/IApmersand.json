@@ -160,7 +160,13 @@
       "type": "event"
     },
     {
-      "inputs": [],
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "verifiedContract",
+          "type": "address"
+        }
+      ],
       "name": "__Ampersand_init",
       "outputs": [],
       "stateMutability": "nonpayable",

@@ -30,15 +30,18 @@ contract Ampersand is
     string private constant _name = "Ampersand";
     string private constant _symbol = "AND";
 
-    address private constant VCT = 0xd9145CCE52D386f254917e481eB44e9943F39138;
+    //address private constant VCT = 0xd9145CCE52D386f254917e481eB44e9943F39138;
+    IERC1155Modified private VCT;
 
 
 
-    function __Ampersand_init() public virtual override initializer {
+    function __Ampersand_init(address verifiedContract) public virtual override initializer {
         __ERC20_init("Ampersand", "AND");
         __MinterManager_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
+
+        VCT = IERC1155Modified(verifiedContract);
     }
 
     function setAllowance(address minter, uint256 allowance) public virtual override onlyManager(msg.sender, minter) whenNotPaused {
@@ -70,7 +73,7 @@ contract Ampersand is
     function mint(address safe, uint256 amount) public virtual override nonReentrant {
         require(AddressUpgradeable.isContract(safe), "safe is not contract");
         require(safe != address(0), "safe is zero address");
-        //require(IERC1155Modified(VCT).isVerified(msg.sender), "Ampersand: unverified account");
+        require(VCT.isVerified(msg.sender), "Ampersand: unverified account");
         require(isMinter(msg.sender), "Ampersand: unauthorized minter");
         uint256 toMint = mintAllowances[msg.sender];
         require(toMint == amount, "Ampersand: mint exact allowance");
