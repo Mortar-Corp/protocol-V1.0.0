@@ -1,15 +1,14 @@
 const { ethers, upgrades } = require("hardhat");
 const { BigNumber } =require("@ethersproject/bignumber");
-const { Signer } = require("ethers");
+
 
 async function main() {
 
-  let minters = [];
-  const [admin, upgrader, minter] = await ethers.getSigners();
-  console.log("Admin Account:", await admin.getAddress());
+  const [owner, manager, minter1, minter2, minter3] = await ethers.getSigners();
+  console.log("owner Account:", await owner.getAddress());
 
   const AMP = await ethers.getContractFactory("Ampersand")
-  const amp = await upgrades.deployProxy(AMP, [vct.address], 
+  const amp = await upgrades.deployProxy(AMP, ["0x2354dd5262B66CC36dEACe1C15a2091823462665"], 
     {initializer: "__Ampersand_init", kind: "uups", unsafeAllow: "delegatecall"})
   await amp.deployed()
   console.log("Ampersand address:", amp.address)
@@ -20,7 +19,7 @@ async function main() {
 
 main()
   .then(() => {
-    console.log("\n Successful Deployment :)");
+    console.log("\nSuccessful Deployment :)");
     process.existCode = 0;
   })
   .catch((error) => {

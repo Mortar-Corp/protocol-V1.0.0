@@ -15,18 +15,19 @@ import "./VCToken.sol";
 contract EstateFactory is Initializable, IEstateFactory, AccessControlUpgradeable, PausableUpgradeable {
 
 
+  
+  bytes32 public constant ADMIN_ROLE = keccak256(abi.encodePacked("ADMIN_ROLE"));
+  bytes32 public constant MANAGER_ROLE = keccak256(abi.encodePacked("MANAGER_ROLE"));
+  bytes32 public constant UPGRADER_ROLE = keccak256(abi.encodePacked("UPGRADER_ROLE"));
+
   address private estateBeacon;
-  address private constant VCT = 0xf8e81D47203A594245E36C48e151709F0C19fBe8;
-
-
   address[] private proxies;
   mapping(address => address[]) private ownerEstates;
   mapping(uint256 => address) private taxAddress;
   mapping(uint256 => bool) existing;
+  
+  address private constant VCT = 0x2354dd5262B66CC36dEACe1C15a2091823462665;
 
-  bytes32 public constant ADMIN_ROLE = keccak256(abi.encodePacked("ADMIN_ROLE"));
-  bytes32 public constant MANAGER_ROLE = keccak256(abi.encodePacked("MANAGER_ROLE"));
-  bytes32 public constant UPGRADER_ROLE = keccak256(abi.encodePacked("UPGRADER_ROLE"));
 
 
   function __EstateFactory_init(address upgrader) public virtual override initializer {

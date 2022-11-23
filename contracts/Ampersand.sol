@@ -24,15 +24,15 @@ contract Ampersand is
 
     using AddressUpgradeable for address;
 
+
     mapping(address => uint256) private mintAllowances;
   
 
     string private constant _name = "Ampersand";
     string private constant _symbol = "AND";
 
-    //address private constant VCT = 0xd9145CCE52D386f254917e481eB44e9943F39138;
-    IERC1155Modified private VCT;
 
+    IERC1155Modified private VCT;
 
 
     function __Ampersand_init(address verifiedContract) public virtual override initializer {

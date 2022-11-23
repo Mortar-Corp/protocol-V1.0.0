@@ -4,24 +4,20 @@ const { Signer } = require("ethers");
 
 async function main() {
 
-  let minters = [];
-  let tokenId = [1, 2, 3, 4, 5];
-  const [admin, upgrader, minter] = await ethers.getSigners();
+  const [admin, upgrader] = await ethers.getSigners();
   console.log("Admin Account:", await admin.getAddress());
 
   const VCT = await ethers.getContractFactory("VCToken");
   const vct = await upgrades.deployProxy(VCT, [process.env.UPGRADER], 
     {initializer: "__VCToken_init", kind: "uups", unsafeAllow: "delegatecall"})
-  
   await vct.deployed()
   console.log("VCToken:", vct.address)
 
-  //vct.setMinter(minter.address, tokenId)
 }
 
 main()
   .then(() => {
-    console.log("\n Successful Deployment :)");
+    console.log("\nSuccessful Deployment :)");
     process.existCode = 0;
   })
   .catch((error) => {

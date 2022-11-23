@@ -19,7 +19,7 @@ module.exports = {
       gasPrice: 2500000000,
     },
     sepolia: {
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_GOERLI_API_KEY}`,
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_SEPOLIA_API_KEY}`,
       chainId: 11155111,
       accounts: [`0x${process.env.ADMIN_PRIVATE_KEY}`],
     },
